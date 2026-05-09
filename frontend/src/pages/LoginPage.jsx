@@ -22,7 +22,7 @@ export default function LoginPage() {
         await register({ email, password, displayName, city })
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Something went wrong')
+      setError(err.response?.data?.error || err.response?.data?.message || err.message || 'Something went wrong')
     }
     setLoading(false)
   }

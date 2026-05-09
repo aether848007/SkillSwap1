@@ -1,12 +1,14 @@
 package com.skillswap.controller;
 
 import com.skillswap.dto.SkillCreateRequest;
+import com.skillswap.dto.UserUpdateRequest;
 import com.skillswap.model.User;
 import com.skillswap.model.SkillProfile;
 import com.skillswap.repository.UserRepository;
 import com.skillswap.repository.SkillProfileRepository;
 import com.skillswap.repository.RatingRepository;
 import com.skillswap.service.SkillService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +30,20 @@ public class UserController {
     public ResponseEntity<?> getMe(Authentication auth) {
         UUID userId = (UUID) auth.getPrincipal();
         User user = userRepo.findById(userId).orElseThrow();
+        return ResponseEntity.ok(buildUserMap(user));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<?> updateMe(Authentication auth, @Valid @RequestBody UserUpdateRequest req) {
+        UUID userId = (UUID) auth.getPrincipal();
+        User user = userRepo.findById(userId).orElseThrow();
+        if (req.getDisplayName() != null && !req.getDisplayName().isBlank()) {
+            user.setDisplayName(req.getDisplayName());
+        }
+        if (req.getBio() != null) user.setBio(req.getBio());
+        if (req.getCity() != null) user.setCity(req.getCity());
+        if (req.getAvatarUrl() != null) user.setAvatarUrl(req.getAvatarUrl());
+        user = userRepo.save(user);
         return ResponseEntity.ok(buildUserMap(user));
     }
 

@@ -8,6 +8,9 @@ import com.skillswap.model.enums.SkillCategory;
 import com.skillswap.repository.SkillProfileRepository;
 import com.skillswap.repository.SkillRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -26,9 +29,17 @@ public class SkillService {
         skill.setProficiencyLevel(ProficiencyLevel.valueOf(req.getProficiencyLevel()));
         skill.setDescription(req.getDescription());
         skill.setIsOffered(req.getIsOffered() != null ? req.getIsOffered() : true);
+        skill.setIsActive(true);
         skill.setSkillProfile(profile);
         return skillRepo.save(skill);
     }
 
     public void deleteSkill(UUID skillId) { skillRepo.deleteById(skillId); }
+
+    @Transactional(readOnly = true)
+    public List<Skill> getUserSkills(UUID userId) {
+        return new ArrayList<>(profileRepo.findByUserUserId(userId)
+                .map(SkillProfile::getSkills)
+                .orElseGet(List::of));
+    }
 }

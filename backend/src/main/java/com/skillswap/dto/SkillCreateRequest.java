@@ -1,8 +1,17 @@
 package com.skillswap.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 public class SkillCreateRequest {
+    @NotBlank
+    @Size(max = 100)
     private String title;
+
+    @NotBlank
     private String category;
+
+    @NotBlank
     private String proficiencyLevel;
     private String description;
     private Boolean isOffered;
