@@ -1,0 +1,37 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: skillswap-backend
+  datasource:
+    url: jdbc:h2:mem:skillswap;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+jwt:
+  secret: SkillSwapSecretKeyForJWTTokenGeneration2024VeryLongSecretKeyThatIsAtLeast256BitsLongForHS256
+  expiration: 3600000
+  refresh-expiration: 604800000
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:3000
+
+logging:
+  level:
+    com.skillswap: DEBUG
