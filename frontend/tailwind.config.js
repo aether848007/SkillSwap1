@@ -8,11 +8,21 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#1F4E79',
-          light: '#2E75B6',
-          dark: '#163a5c',
+          DEFAULT: 'var(--primary)',
+          light: 'var(--primary-light)',
+          dark: 'var(--primary-dark)',
         },
-        accent: '#00C9A7',
+        accent: 'var(--accent)',
+        border: 'var(--border)',
+        'text-secondary': 'var(--text-secondary)',
+      },
+      borderRadius: {
+        DEFAULT: 'var(--radius)',
+        sm: 'var(--radius-sm)',
+      },
+      boxShadow: {
+        card: 'var(--shadow)',
+        lg: 'var(--shadow-lg)',
       },
     },
   },

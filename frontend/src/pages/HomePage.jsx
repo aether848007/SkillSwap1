@@ -25,7 +25,7 @@ export default function HomePage() {
       if (query) params.query = query
       else if (category !== 'All') params.category = category
       const res = await api.get('/search', { params })
-      setSkills(res.data)
+      setSkills(res.data.content ?? res.data)
     } catch (e) {
       console.error(e)
     }

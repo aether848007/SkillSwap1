@@ -1,76 +1,87 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 
 export default function MessagesPage() {
   const { user } = useAuth()
   const [conversations, setConversations] = useState([])
-  const [activeConv, setActiveConv] = useState(null)
-  const [messages, setMessages] = useState([])
-  const [newMsg, setNewMsg] = useState('')
-  const [loading, setLoading] = useState(true)
-  const chatEndRef = useRef(null)
+  const [activeConv, setActiveConv]       = useState(null)
+  const [messages, setMessages]           = useState([])
+  const [newMsg, setNewMsg]               = useState('')
+  const [loading, setLoading]             = useState(true)
+  const chatEndRef   = useRef(null)
+  const pollRef      = useRef(null)
+  const activeConvId = useRef(null)
 
-  useEffect(() => { fetchConversations() }, [])
+  const fetchConversations = useCallback(async () => {
+    try {
+      const res = await api.get('/messages/conversations')
+      const convIds = res.data
+      if (!Array.isArray(convIds) || convIds.length === 0) {
+        setConversations([])
+        return
+      }
+      const convs = []
+      for (const convId of convIds) {
+        try {
+          const msgRes = await api.get(`/messages/conversation/${convId}`)
+          const msgs = Array.isArray(msgRes.data) ? msgRes.data : []
+          if (msgs.length > 0) {
+            const last = msgs[msgs.length - 1]
+            const other = last.sender?.userId === user?.userId ? last.receiver : last.sender
+            convs.push({ convId, otherUser: other, lastMessage: last.content, lastTime: last.sentAt })
+          }
+        } catch { /* skip broken conv */ }
+      }
+      setConversations(convs)
+      if (convs.length > 0 && !activeConvId.current) {
+        setActiveConv(convs[0])
+        activeConvId.current = convs[0].convId
+      }
+    } catch { /* ignore if backend down */ }
+    setLoading(false)
+  }, [user])
+
+  const fetchMessages = useCallback(async (convId) => {
+    if (!convId) return
+    try {
+      const res = await api.get(`/messages/conversation/${convId}`)
+      setMessages(Array.isArray(res.data) ? res.data : [])
+    } catch { /* ignore */ }
+  }, [])
 
   useEffect(() => {
-    if (activeConv) fetchMessages(activeConv.convId)
-  }, [activeConv])
+    fetchConversations()
+  }, [fetchConversations])
+
+  useEffect(() => {
+    activeConvId.current = activeConv?.convId ?? null
+    if (activeConv?.convId) {
+      fetchMessages(activeConv.convId)
+      clearInterval(pollRef.current)
+      pollRef.current = setInterval(() => fetchMessages(activeConv.convId), 3000)
+    }
+    return () => clearInterval(pollRef.current)
+  }, [activeConv?.convId, fetchMessages])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const fetchConversations = async () => {
-    try {
-      const res = await api.get('/messages/conversations')
-      // For each conv ID, get the messages to build a preview
-      const convs = []
-      for (const convId of res.data) {
-        const msgRes = await api.get(`/messages/conversation/${convId}`)
-        const msgs = msgRes.data
-        if (msgs.length > 0) {
-          const lastMsg = msgs[msgs.length - 1]
-          const otherUser = lastMsg.sender?.userId === user?.userId ? lastMsg.receiver : lastMsg.sender
-          convs.push({
-            convId,
-            otherUser,
-            lastMessage: lastMsg.content,
-            lastTime: lastMsg.sentAt,
-            messages: msgs
-          })
-        }
-      }
-      setConversations(convs)
-      if (convs.length > 0 && !activeConv) setActiveConv(convs[0])
-    } catch (e) { console.error(e) }
-    setLoading(false)
-  }
-
-  const fetchMessages = async (convId) => {
-    try {
-      const res = await api.get(`/messages/conversation/${convId}`)
-      setMessages(res.data)
-    } catch (e) { console.error(e) }
-  }
-
   const sendMessage = async (e) => {
     e.preventDefault()
     if (!newMsg.trim() || !activeConv) return
+    const content = newMsg
+    setNewMsg('')
     try {
-      await api.post('/messages', {
-        receiverId: activeConv.otherUser?.userId,
-        content: newMsg
-      })
-      setNewMsg('')
-      fetchMessages(activeConv.convId)
-    } catch (e) { console.error(e) }
+      await api.post('/messages', { receiverId: activeConv.otherUser?.userId, content })
+      await fetchMessages(activeConv.convId)
+    } catch { /* ignore */ }
   }
 
   const formatTime = (dt) => {
     if (!dt) return ''
-    const d = new Date(dt)
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    return new Date(dt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   }
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading messages...</div>
@@ -83,7 +94,9 @@ export default function MessagesPage() {
 
       {conversations.length === 0 ? (
         <div className="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+          </svg>
           <h3>No messages yet</h3>
           <p>Start a conversation by messaging a skill provider from their profile</p>
         </div>
@@ -113,13 +126,16 @@ export default function MessagesPage() {
               <>
                 <div className="chat-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary)', color: 'white', fontWeight: 700, fontSize: '0.9rem', flexShrink: 0 }}>{activeConv.otherUser?.displayName?.[0]?.toUpperCase()}</div>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', color: 'white', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {activeConv.otherUser?.displayName?.[0]?.toUpperCase()}
+                    </div>
                     {activeConv.otherUser?.displayName}
                   </div>
                 </div>
                 <div className="chat-messages">
-                  {messages.map(msg => (
-                    <div key={msg.messageId}
+                  {messages.map((msg, i) => (
+                    <div
+                      key={msg.messageId ?? i}
                       className={`message-bubble ${msg.sender?.userId === user?.userId ? 'message-sent' : 'message-received'}`}
                     >
                       {msg.content}
@@ -129,7 +145,12 @@ export default function MessagesPage() {
                   <div ref={chatEndRef} />
                 </div>
                 <form className="chat-input" onSubmit={sendMessage}>
-                  <input className="form-input" value={newMsg} onChange={e => setNewMsg(e.target.value)} placeholder="Type a message..." />
+                  <input
+                    className="form-input"
+                    value={newMsg}
+                    onChange={e => setNewMsg(e.target.value)}
+                    placeholder="Type a message..."
+                  />
                   <button type="submit" className="btn btn-primary">Send</button>
                 </form>
               </>

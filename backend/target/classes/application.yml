@@ -15,6 +15,8 @@ spring:
       path: /h2-console
       settings:
         web-allow-others: true
+  flyway:
+    enabled: false
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -24,13 +26,13 @@ spring:
         format_sql: true
 
 jwt:
-  secret: SkillSwapSecretKeyForJWTTokenGeneration2024VeryLongSecretKeyThatIsAtLeast256BitsLongForHS256
+  secret: ${JWT_SECRET:SkillSwapSecretKeyForJWTTokenGeneration2024VeryLongSecretKeyThatIsAtLeast256BitsLongForHS256}
   expiration: 3600000
   refresh-expiration: 604800000
 
 app:
   cors:
-    allowed-origins: http://localhost:5173,http://localhost:3000
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 
 logging:
   level:

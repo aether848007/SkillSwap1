@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
+import StarRating from '../components/StarRating'
 
 export default function UserProfilePage() {
   const { id } = useParams()
@@ -177,11 +178,7 @@ export default function UserProfilePage() {
               <div key={review.ratingId} className="card fade-in" style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <div style={{ fontWeight: 600 }}>{review.rater?.displayName || 'User'}</div>
-                  <div className="rating">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} style={{ color: i < review.score ? '#f59e0b' : '#d1d5db' }}>★</span>
-                    ))}
-                  </div>
+                  <StarRating score={review.score} />
                 </div>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>{review.comment}</div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: 8 }}>

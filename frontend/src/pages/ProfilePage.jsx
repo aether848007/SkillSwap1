@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { useJsApiLoader, StandaloneSearchBox } from '@react-google-maps/api';
+import Toast from '../components/Toast';
+import Modal from '../components/Modal';
+
+const MAPS_LIBS = ['places'];
 
 const CATEGORIES = [
   'PROGRAMMING', 'DESIGN', 'LANGUAGE', 'MUSIC',
@@ -30,8 +35,16 @@ export default function ProfilePage() {
   const [saving, setSaving]       = useState(false);
   const [toast, setToast]         = useState('');
 
-  const [editForm, setEditForm]   = useState({ displayName: '', bio: '', city: '' });
+  const [editForm, setEditForm]   = useState({ displayName: '', bio: '', city: '', latitude: null, longitude: null });
   const [skillForm, setSkillForm] = useState(DEFAULT_SKILL_FORM);
+
+  const searchBoxRef  = useRef(null);
+  const fileInputRef  = useRef(null);
+
+  const { isLoaded: mapsLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries: MAPS_LIBS,
+  });
 
   useEffect(() => { loadData(); }, []);
 
@@ -48,7 +61,7 @@ export default function ProfilePage() {
       ]);
       const p = profileRes.data;
       setProfile(p);
-      setEditForm({ displayName: p.displayName || '', bio: p.bio || '', city: p.city || '' });
+      setEditForm({ displayName: p.displayName || '', bio: p.bio || '', city: p.city || '', latitude: p.latitude || null, longitude: p.longitude || null });
       setSkills(skillsRes.data);
     } catch {
       showToast('Failed to load profile');
@@ -114,17 +127,36 @@ export default function ProfilePage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            {profile?.avatarUrl ? (
-              <img
-                src={profile.avatarUrl}
-                alt={profile.displayName}
-                className="w-16 h-16 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-blue-700 flex items-center justify-center text-white text-2xl font-bold select-none">
-                {initials}
+            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()} title="Click to change avatar">
+              {profile?.avatarUrl ? (
+                <img
+                  src={profile.avatarUrl}
+                  alt={profile.displayName}
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-blue-700 flex items-center justify-center text-white text-2xl font-bold select-none">
+                  {initials}
+                </div>
+              )}
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
+                <span style={{ color: '#fff', fontSize: 11, fontWeight: 600 }}>Edit</span>
               </div>
-            )}
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                const form = new FormData()
+                form.append('file', file)
+                try {
+                  const res = await api.post('/users/me/avatar', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+                  setProfile(p => ({ ...p, avatarUrl: res.data.avatarUrl }))
+                  showToast('Avatar updated')
+                } catch { showToast('Failed to upload avatar') }
+              }}
+            />
             <div>
               <h1 className="text-lg font-semibold text-gray-900">{profile?.displayName}</h1>
               <p className="text-sm text-gray-400">{profile?.email}</p>
@@ -171,13 +203,40 @@ export default function ProfilePage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
-              <input
-                type="text"
-                value={editForm.city}
-                onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                placeholder="City, Country"
-                className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              {mapsLoaded ? (
+                <StandaloneSearchBox
+                  onLoad={ref => (searchBoxRef.current = ref)}
+                  onPlacesChanged={() => {
+                    const places = searchBoxRef.current?.getPlaces();
+                    if (!places || places.length === 0) return;
+                    const place = places[0];
+                    const lat = place.geometry?.location?.lat();
+                    const lng = place.geometry?.location?.lng();
+                    setEditForm(f => ({
+                      ...f,
+                      city: place.formatted_address || place.name || f.city,
+                      latitude: lat ?? f.latitude,
+                      longitude: lng ?? f.longitude,
+                    }));
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={editForm.city}
+                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                    placeholder="City, Country"
+                    className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </StandaloneSearchBox>
+              ) : (
+                <input
+                  type="text"
+                  value={editForm.city}
+                  onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                  placeholder="City, Country"
+                  className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
             </div>
             <button
               type="submit"
@@ -350,13 +409,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── Toast ── */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-3 z-50">
-          {toast}
-          <button onClick={() => setToast('')} className="opacity-60 hover:opacity-100">✕</button>
-        </div>
-      )}
+      <Toast message={toast} onClose={() => setToast('')} />
     </div>
   );
 }

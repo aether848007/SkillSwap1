@@ -11,10 +11,14 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+    const status = err.response?.status
+    if (status === 401 || status === 403) {
+      const isAuthEndpoint = err.config?.url?.includes('/auth/')
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(err)
   }

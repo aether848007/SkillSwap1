@@ -12,4 +12,6 @@ public interface RatingRepository extends JpaRepository<Rating, UUID> {
 
     @Query("SELECT AVG(r.score) FROM Rating r WHERE r.ratee.userId = :userId")
     Double getAverageRatingForUser(@Param("userId") UUID userId);
+
+    boolean existsBySessionSessionIdAndRaterUserId(UUID sessionId, UUID raterId);
 }

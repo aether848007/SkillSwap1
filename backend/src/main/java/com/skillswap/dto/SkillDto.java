@@ -15,6 +15,8 @@ public class SkillDto {
     private Double providerRating;
     private UUID providerUserId;
     private String providerAvatar;
+    private Double providerLat;
+    private Double providerLng;
 
     // Getters and setters
     public UUID getSkillId() { return skillId; }
@@ -41,4 +43,8 @@ public class SkillDto {
     public void setProviderUserId(UUID u) { this.providerUserId = u; }
     public String getProviderAvatar() { return providerAvatar; }
     public void setProviderAvatar(String a) { this.providerAvatar = a; }
+    public Double getProviderLat() { return providerLat; }
+    public void setProviderLat(Double lat) { this.providerLat = lat; }
+    public Double getProviderLng() { return providerLng; }
+    public void setProviderLng(Double lng) { this.providerLng = lng; }
 }
