@@ -3,7 +3,6 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useJsApiLoader, StandaloneSearchBox } from '@react-google-maps/api';
 import Toast from '../components/Toast';
-import Modal from '../components/Modal';
 
 const MAPS_LIBS = ['places'];
 
@@ -13,11 +12,13 @@ const CATEGORIES = [
 ];
 const LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 
-const LEVEL_STYLES = {
-  ADVANCED:     'bg-purple-100 text-purple-700',
-  INTERMEDIATE: 'bg-blue-100 text-blue-700',
-  BEGINNER:     'bg-green-100 text-green-700',
+const LEVEL_CLASS = {
+  ADVANCED:     'badge badge-level-advanced',
+  INTERMEDIATE: 'badge badge-level-intermediate',
+  BEGINNER:     'badge badge-level-beginner',
 };
+
+const toLabel = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 
 const DEFAULT_SKILL_FORM = {
   title: '', category: 'PROGRAMMING', proficiencyLevel: 'BEGINNER',
@@ -25,7 +26,7 @@ const DEFAULT_SKILL_FORM = {
 };
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
 
   const [profile, setProfile]     = useState(null);
   const [skills, setSkills]       = useState([]);
@@ -38,8 +39,8 @@ export default function ProfilePage() {
   const [editForm, setEditForm]   = useState({ displayName: '', bio: '', city: '', latitude: null, longitude: null });
   const [skillForm, setSkillForm] = useState(DEFAULT_SKILL_FORM);
 
-  const searchBoxRef  = useRef(null);
-  const fileInputRef  = useRef(null);
+  const searchBoxRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const { isLoaded: mapsLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -112,7 +113,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 192, color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
         Loading profile…
       </div>
     );
@@ -121,88 +122,99 @@ export default function ProfilePage() {
   const initials = profile?.displayName?.[0]?.toUpperCase() ?? '?';
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+    <div style={{ maxWidth: 672, margin: '0 auto', padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-      {/* ── Profile card ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()} title="Click to change avatar">
+      {/* Profile card */}
+      <div className="card">
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()} title="Click to change photo">
               {profile?.avatarUrl ? (
                 <img
                   src={profile.avatarUrl}
                   alt={profile.displayName}
-                  className="w-16 h-16 rounded-full object-cover"
+                  style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }}
                 />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-blue-700 flex items-center justify-center text-white text-2xl font-bold select-none">
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '1.5rem', userSelect: 'none' }}>
                   {initials}
                 </div>
               )}
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
+              <div
+                style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                onMouseLeave={e => e.currentTarget.style.opacity = 0}
+              >
                 <span style={{ color: '#fff', fontSize: 11, fontWeight: 600 }}>Edit</span>
               </div>
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
               onChange={async (e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                const form = new FormData()
-                form.append('file', file)
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const localUrl = URL.createObjectURL(file);
+                setProfile(p => ({ ...p, avatarUrl: localUrl }));
+                e.target.value = '';
+                const form = new FormData();
+                form.append('file', file);
                 try {
-                  const res = await api.post('/users/me/avatar', form, { headers: { 'Content-Type': 'multipart/form-data' } })
-                  setProfile(p => ({ ...p, avatarUrl: res.data.avatarUrl }))
-                  showToast('Avatar updated')
-                } catch { showToast('Failed to upload avatar') }
+                  const res = await api.post('/users/me/avatar', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+                  setProfile(p => ({ ...p, avatarUrl: res.data.avatarUrl }));
+                  updateUser({ avatarUrl: res.data.avatarUrl });
+                  showToast('Photo updated');
+                } catch {
+                  setProfile(p => ({ ...p, avatarUrl: profile?.avatarUrl ?? null }));
+                  showToast('Failed to upload photo');
+                }
               }}
             />
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">{profile?.displayName}</h1>
-              <p className="text-sm text-gray-400">{profile?.email}</p>
+              <h1 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>{profile?.displayName}</h1>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{profile?.email}</p>
               {profile?.city && (
-                <p className="text-sm text-gray-500 mt-0.5">📍 {profile.city}</p>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 2 }}>📍 {profile.city}</p>
               )}
             </div>
           </div>
 
           <button
             onClick={() => setEditing((v) => !v)}
-            className="shrink-0 text-sm px-4 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+            className="btn btn-outline btn-sm"
+            style={{ flexShrink: 0 }}
           >
             {editing ? 'Cancel' : 'Edit'}
           </button>
         </div>
 
         {profile?.bio && !editing && (
-          <p className="mt-4 text-sm text-gray-600 leading-relaxed">{profile.bio}</p>
+          <p style={{ marginTop: 16, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{profile.bio}</p>
         )}
 
         {editing && (
-          <form onSubmit={handleUpdateProfile} className="mt-5 space-y-3">
+          <form onSubmit={handleUpdateProfile} style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Display name</label>
+              <label className="form-label">Display name</label>
               <input
                 type="text"
                 value={editForm.displayName}
                 onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
                 maxLength={100}
-                className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="form-input"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Bio</label>
+              <label className="form-label">Bio</label>
               <textarea
                 value={editForm.bio}
                 onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
                 rows={3}
                 maxLength={1000}
                 placeholder="Tell others what you can teach or want to learn…"
-                className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="form-textarea"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
+              <label className="form-label">Location</label>
               {mapsLoaded ? (
                 <StandaloneSearchBox
                   onLoad={ref => (searchBoxRef.current = ref)}
@@ -225,7 +237,7 @@ export default function ProfilePage() {
                     value={editForm.city}
                     onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
                     placeholder="City, Country"
-                    className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="form-input"
                   />
                 </StandaloneSearchBox>
               ) : (
@@ -234,14 +246,15 @@ export default function ProfilePage() {
                   value={editForm.city}
                   onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
                   placeholder="City, Country"
-                  className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                 />
               )}
             </div>
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="btn btn-primary"
+              style={{ alignSelf: 'flex-start' }}
             >
               {saving ? 'Saving…' : 'Save changes'}
             </button>
@@ -249,54 +262,53 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* ── Skills card ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-900">
+      {/* Skills card */}
+      <div className="card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>
             My Skills
-            <span className="ml-2 text-sm font-normal text-gray-400">({skills.length})</span>
+            <span style={{ marginLeft: 8, fontSize: '0.88rem', fontWeight: 400, color: 'var(--text-secondary)' }}>({skills.length})</span>
           </h2>
-          <button
-            onClick={() => setShowModal(true)}
-            className="text-sm px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
+          <button onClick={() => setShowModal(true)} className="btn btn-primary btn-sm">
             + Add skill
           </button>
         </div>
 
         {skills.length === 0 ? (
-          <p className="text-sm text-center text-gray-400 py-10">
+          <p style={{ fontSize: '0.9rem', textAlign: 'center', color: 'var(--text-secondary)', padding: '40px 0' }}>
             No skills yet — add something you can teach!
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, listStyle: 'none' }}>
             {skills.map((skill) => (
               <li
                 key={skill.skillId}
-                className="flex items-start justify-between gap-3 p-3 bg-gray-50 rounded-xl"
+                style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: 12, background: 'var(--bg)', borderRadius: 'var(--radius-sm)' }}
               >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                    <span className="text-sm font-medium text-gray-900 truncate">{skill.title}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${LEVEL_STYLES[skill.proficiencyLevel] ?? 'bg-gray-100 text-gray-600'}`}>
-                      {skill.proficiencyLevel}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {skill.title}
                     </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                      {skill.category}
+                    <span className={LEVEL_CLASS[skill.proficiencyLevel] ?? 'badge'}>
+                      {toLabel(skill.proficiencyLevel)}
+                    </span>
+                    <span className="badge badge-category">
+                      {toLabel(skill.category)}
                     </span>
                     {skill.isOffered === false && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-600">
-                        Seeking
-                      </span>
+                      <span className="badge" style={{ background: '#fff7ed', color: '#c2410c' }}>Seeking</span>
                     )}
                   </div>
                   {skill.description && (
-                    <p className="text-xs text-gray-500 leading-snug">{skill.description}</p>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{skill.description}</p>
                   )}
                 </div>
                 <button
                   onClick={() => handleDeleteSkill(skill.skillId)}
-                  className="shrink-0 text-gray-300 hover:text-red-400 transition-colors text-base leading-none mt-0.5"
+                  style={{ flexShrink: 0, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, marginTop: 2, transition: 'color 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
                   title="Remove skill"
                 >
                   ✕
@@ -307,27 +319,27 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* ── Add skill modal ── */}
+      {/* Add skill modal */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="modal-overlay"
           onClick={(e) => e.target === e.currentTarget && setShowModal(false)}
         >
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-semibold text-gray-900">Add a skill</h3>
+          <div className="modal">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Add a skill</h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+                style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }}
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleAddSkill} className="space-y-4">
+            <form onSubmit={handleAddSkill} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Skill name <span className="text-red-400">*</span>
+                <label className="form-label">
+                  Skill name <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -336,71 +348,63 @@ export default function ProfilePage() {
                   onChange={(e) => setSkillForm({ ...skillForm, title: e.target.value })}
                   placeholder="e.g. Python, Guitar, Photography"
                   maxLength={100}
-                  className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-input"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Category <span className="text-red-400">*</span>
+                  <label className="form-label">
+                    Category <span style={{ color: 'var(--danger)' }}>*</span>
                   </label>
                   <select
                     value={skillForm.category}
                     onChange={(e) => setSkillForm({ ...skillForm, category: e.target.value })}
-                    className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="form-select"
                   >
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{toLabel(c)}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Level <span className="text-red-400">*</span>
+                  <label className="form-label">
+                    Level <span style={{ color: 'var(--danger)' }}>*</span>
                   </label>
                   <select
                     value={skillForm.proficiencyLevel}
                     onChange={(e) => setSkillForm({ ...skillForm, proficiencyLevel: e.target.value })}
-                    className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="form-select"
                   >
-                    {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+                    {LEVELS.map((l) => <option key={l} value={l}>{toLabel(l)}</option>)}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                <label className="form-label">Description</label>
                 <textarea
                   value={skillForm.description}
                   onChange={(e) => setSkillForm({ ...skillForm, description: e.target.value })}
                   rows={2}
-                  placeholder="Brief description…"
-                  className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  placeholder="Brief description of what you can teach…"
+                  className="form-textarea"
                 />
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer select-none">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
                 <input
                   type="checkbox"
                   checked={skillForm.isOffered}
                   onChange={(e) => setSkillForm({ ...skillForm, isOffered: e.target.checked })}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  style={{ width: 16, height: 16 }}
                 />
-                <span className="text-sm text-gray-700">I'm offering to teach this skill</span>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text)' }}>I'm offering to teach this skill</span>
               </label>
 
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 text-sm px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+              <div style={{ display: 'flex', gap: 12, paddingTop: 4 }}>
+                <button type="button" onClick={() => setShowModal(false)} className="btn btn-outline" style={{ flex: 1 }}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 text-sm px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
+                <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>
                   {saving ? 'Adding…' : 'Add skill'}
                 </button>
               </div>

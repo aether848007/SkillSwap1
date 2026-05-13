@@ -3,7 +3,7 @@ spring:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/skillswap}
     driver-class-name: org.postgresql.Driver
     username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:postgres}
+    password: ${DATABASE_PASSWORD:postgres123}
     hikari:
       maximum-pool-size: 10
       connection-timeout: 30000

@@ -4,11 +4,13 @@ import com.skillswap.model.*;
 import com.skillswap.model.enums.*;
 import com.skillswap.repository.*;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Profile("!postgres")
 @Component
 public class DataSeeder implements CommandLineRunner {
     private final UserRepository userRepo;

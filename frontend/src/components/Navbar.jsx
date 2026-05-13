@@ -55,12 +55,7 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <Link to="/" className="navbar-brand">
-        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect width="32" height="32" rx="8" fill="#1F4E79"/>
-          <path d="M8 16C8 11.58 11.58 8 16 8s8 3.58 8 8-3.58 8-8 8" stroke="#00C9A7" strokeWidth="2.5" strokeLinecap="round"/>
-          <path d="M24 16c0 4.42-3.58 8-8 8s-8-3.58-8-8" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-          <circle cx="16" cy="16" r="3" fill="#00C9A7"/>
-        </svg>
+        <img src="/logo.svg" alt="SkillSwap" width="32" height="32" style={{ borderRadius: 6 }} />
         SkillSwap
       </Link>
       <div className="navbar-links">
@@ -75,10 +70,10 @@ export default function Navbar() {
         <div ref={bellRef} style={{ position: 'relative' }}>
           <button
             onClick={openNotifs}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', padding: '4px 6px', fontSize: 18, color: 'var(--text-secondary)' }}
-            title="Notifications"
+            aria-label="Notifications"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', padding: '4px 6px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}
           >
-            🔔
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             {unread > 0 && (
               <span style={{ position: 'absolute', top: 0, right: 0, background: '#ef4444', color: '#fff', borderRadius: '50%', fontSize: 10, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
                 {unread > 9 ? '9+' : unread}
