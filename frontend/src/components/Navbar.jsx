@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useWebSocket } from '../hooks/useWebSocket'
 import api from '../api/axios'
 
 export default function Navbar() {
@@ -15,8 +16,6 @@ export default function Navbar() {
 
   useEffect(() => {
     fetchUnread()
-    const interval = setInterval(fetchUnread, 30000)
-    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
@@ -24,6 +23,14 @@ export default function Navbar() {
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
   }, [])
+
+  // Real-time notification push via WebSocket
+  useWebSocket({
+    onNotification: (notif) => {
+      setUnread(prev => prev + 1)
+      setNotifs(prev => [notif, ...prev])
+    },
+  })
 
   const fetchUnread = async () => {
     try {
@@ -60,10 +67,11 @@ export default function Navbar() {
       </Link>
       <div className="navbar-links">
         <Link to="/" className={isActive('/')}>Home</Link>
+        <Link to="/matches" className={isActive('/matches')}>Matches</Link>
         <Link to="/search" className={isActive('/search')}>Discover</Link>
         <Link to="/sessions" className={isActive('/sessions')}>Sessions</Link>
         <Link to="/messages" className={isActive('/messages')}>Messages</Link>
-        {isAdmin && <Link to="/admin" className={isActive('/admin')} style={{ color: 'var(--accent)' }}>Admin</Link>}
+        {isAdmin && <Link to="/admin" className={isActive('/admin')} style={{ color: 'var(--positive-deep)' }}>Admin</Link>}
       </div>
       <div className="navbar-user">
         {/* Notification bell */}
@@ -71,7 +79,7 @@ export default function Navbar() {
           <button
             onClick={openNotifs}
             aria-label="Notifications"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', padding: '4px 6px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', padding: '4px 6px', color: 'var(--mute)', display: 'flex', alignItems: 'center' }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             {unread > 0 && (
@@ -81,18 +89,18 @@ export default function Navbar() {
             )}
           </button>
           {showNotifs && (
-            <div style={{ position: 'absolute', right: 0, top: '110%', width: 320, background: '#fff', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 200, overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', right: 0, top: '110%', width: 320, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', boxShadow: '0 8px 32px rgba(14,15,12,0.12)', zIndex: 200, overflow: 'hidden' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>Notifications</span>
-                {unread > 0 && <button onClick={markAllRead} style={{ fontSize: 12, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>Mark all read</button>}
+                <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>Notifications</span>
+                {unread > 0 && <button onClick={markAllRead} style={{ fontSize: 12, color: 'var(--positive-deep)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Mark all read</button>}
               </div>
               <div style={{ maxHeight: 320, overflowY: 'auto' }}>
                 {notifs.length === 0 ? (
-                  <div style={{ padding: '20px 16px', fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center' }}>No notifications</div>
+                  <div style={{ padding: '20px 16px', fontSize: 13, color: 'var(--mute)', textAlign: 'center' }}>No notifications</div>
                 ) : notifs.map(n => (
-                  <div key={n.notificationId} style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6', background: n.isRead ? '#fff' : '#eff6ff', fontSize: 13 }}>
-                    <div style={{ color: n.isRead ? 'var(--text-secondary)' : 'var(--text)' }}>{n.message}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{new Date(n.createdAt).toLocaleString()}</div>
+                  <div key={n.notificationId} style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', background: n.isRead ? 'var(--bg-card)' : 'var(--primary-pale)', fontSize: 13 }}>
+                    <div style={{ color: n.isRead ? 'var(--text-secondary)' : 'var(--text)', lineHeight: 1.5 }}>{n.message}</div>
+                    <div style={{ fontSize: 11, color: 'var(--mute)', marginTop: 3 }}>{new Date(n.createdAt).toLocaleString()}</div>
                   </div>
                 ))}
               </div>
@@ -100,7 +108,7 @@ export default function Navbar() {
           )}
         </div>
 
-        <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{user?.displayName}</span>
+        <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{user?.displayName}</span>
         <Link to="/profile">
           {user?.avatarUrl ? (
             <img src={user.avatarUrl} alt={user.displayName} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer' }} />

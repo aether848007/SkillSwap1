@@ -6,6 +6,7 @@ import com.skillswap.model.User;
 import com.skillswap.model.enums.SkillCategory;
 import com.skillswap.repository.SkillRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,6 +16,7 @@ public class SearchService {
 
     public SearchService(SkillRepository skillRepo) { this.skillRepo = skillRepo; }
 
+    @Transactional(readOnly = true)
     public List<SkillDto> searchSkills(String query, String category) {
         List<Skill> skills;
         if (query != null && !query.isBlank()) {
@@ -27,6 +29,7 @@ public class SearchService {
         return skills.stream().map(this::toDto).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<SkillDto> searchNearby(double lat, double lng, double radiusKm, String query) {
         List<Skill> candidates = (query != null && !query.isBlank())
                 ? skillRepo.searchSkills(query)

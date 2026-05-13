@@ -1,6 +1,7 @@
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\model\SkillProfile.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\dto\SkillCreateRequest.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\repository\SessionRepository.java
+C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\model\enums\MatchRequestStatus.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller\UserController.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller\AuthController.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\repository\NotificationRepository.java
@@ -20,6 +21,7 @@ C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\service\Se
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller\RatingController.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\model\Rating.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\repository\UserRepository.java
+C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\service\MatchService.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\model\Skill.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller\SearchController.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\dto\AuthResponse.java
@@ -28,6 +30,8 @@ C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller\NotificationController.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\service\NotificationService.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\SkillSwapApplication.java
+C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller\MatchRequestController.java
+C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\dto\GoogleAuthRequest.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\config\DataSeeder.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\model\Message.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\service\AuthService.java
@@ -36,6 +40,8 @@ C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\service\Me
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller\AdminController.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\config\SecurityConfig.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller\SessionController.java
+C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\repository\MatchRequestRepository.java
+C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\dto\MatchResult.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\dto\SessionRequest.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\model\Session.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\service\SkillService.java
@@ -46,8 +52,10 @@ C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller\MessageController.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\config\WebSocketAuthInterceptor.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\service\RatingService.java
+C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\controller\MatchController.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\model\enums\SkillCategory.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\repository\SkillProfileRepository.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\config\GlobalExceptionHandler.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\model\Notification.java
+C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\model\MatchRequest.java
 C:\Users\Lenova\Desktop\skillswap\backend\src\main\java\com\skillswap\model\enums\UserRole.java

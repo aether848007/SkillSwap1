@@ -16,11 +16,16 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
+  const needsOnboarding = (userData) => {
+    const skipped = localStorage.getItem('onboardingSkipped')
+    return !skipped && (!userData.skills || userData.skills.length === 0)
+  }
+
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password })
     localStorage.setItem('token', res.data.accessToken)
     localStorage.setItem('user', JSON.stringify(res.data))
-    setUser(res.data)
+    setUser({ ...res.data, needsOnboarding: needsOnboarding(res.data) })
     return res.data
   }
 
@@ -28,7 +33,16 @@ export function AuthProvider({ children }) {
     const res = await api.post('/auth/register', data)
     localStorage.setItem('token', res.data.accessToken)
     localStorage.setItem('user', JSON.stringify(res.data))
-    setUser(res.data)
+    setUser({ ...res.data, needsOnboarding: needsOnboarding(res.data) })
+    return res.data
+  }
+
+  const googleLogin = async (code) => {
+    const redirectUri = window.location.origin + '/auth/callback'
+    const res = await api.post('/auth/google', { code, redirectUri })
+    localStorage.setItem('token', res.data.accessToken)
+    localStorage.setItem('user', JSON.stringify(res.data))
+    setUser({ ...res.data, needsOnboarding: needsOnboarding(res.data) })
     return res.data
   }
 
@@ -47,7 +61,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, login, register, googleLogin, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   )

@@ -15,7 +15,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
-import java.nio.file.*;
 import java.util.*;
 
 @RestController
@@ -67,19 +66,13 @@ public class UserController {
     @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadAvatar(Authentication auth, @RequestParam("file") MultipartFile file) throws IOException {
         UUID userId = (UUID) auth.getPrincipal();
-        String ext = Optional.ofNullable(file.getOriginalFilename())
-                .filter(n -> n.contains("."))
-                .map(n -> n.substring(n.lastIndexOf('.')))
-                .orElse(".jpg");
-        String filename = userId + "_" + System.currentTimeMillis() + ext;
-        Path uploadDir = Paths.get("uploads");
-        Files.createDirectories(uploadDir);
-        Files.copy(file.getInputStream(), uploadDir.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
-        String url = "/uploads/" + filename;
+        String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+        String base64 = Base64.getEncoder().encodeToString(file.getBytes());
+        String dataUrl = "data:" + contentType + ";base64," + base64;
         User user = userRepo.findById(userId).orElseThrow();
-        user.setAvatarUrl(url);
+        user.setAvatarUrl(dataUrl);
         userRepo.save(user);
-        return ResponseEntity.ok(Map.of("avatarUrl", url));
+        return ResponseEntity.ok(Map.of("avatarUrl", dataUrl));
     }
 
     @PostMapping("/skills")

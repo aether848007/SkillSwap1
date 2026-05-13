@@ -33,13 +33,13 @@ public class DataSeeder implements CommandLineRunner {
 
         // Users
         User asel = new User(); asel.setEmail("asel@mail.com"); asel.setDisplayName("Asel Nurbekova");
-        asel.setPassword(encoder.encode("password123")); asel.setRole(UserRole.PROVIDER);
+        asel.setPassword(encoder.encode("password123")); asel.setRole(UserRole.LEARNER);
         asel.setBio("CS student passionate about Python and AI. Looking to improve my English skills.");
         asel.setCity("Almaty"); asel.setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Asel");
         asel = userRepo.save(asel);
 
         User dmitri = new User(); dmitri.setEmail("dmitri@mail.com"); dmitri.setDisplayName("Dmitri Volkov");
-        dmitri.setPassword(encoder.encode("password123")); dmitri.setRole(UserRole.PROVIDER);
+        dmitri.setPassword(encoder.encode("password123")); dmitri.setRole(UserRole.LEARNER);
         dmitri.setBio("Freelance graphic designer with 10 years of experience. Want to learn Python for automation.");
         dmitri.setCity("Astana"); dmitri.setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Dmitri");
         dmitri = userRepo.save(dmitri);
@@ -51,19 +51,19 @@ public class DataSeeder implements CommandLineRunner {
         mira = userRepo.save(mira);
 
         User alex = new User(); alex.setEmail("alex@mail.com"); alex.setDisplayName("Alexander Kim");
-        alex.setPassword(encoder.encode("password123")); alex.setRole(UserRole.PROVIDER);
+        alex.setPassword(encoder.encode("password123")); alex.setRole(UserRole.LEARNER);
         alex.setBio("Full-stack developer and music enthusiast. I teach JavaScript and want to learn guitar.");
         alex.setCity("Almaty"); alex.setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Alex");
         alex = userRepo.save(alex);
 
         User sarah = new User(); sarah.setEmail("sarah@mail.com"); sarah.setDisplayName("Sarah Omarova");
-        sarah.setPassword(encoder.encode("password123")); sarah.setRole(UserRole.PROVIDER);
+        sarah.setPassword(encoder.encode("password123")); sarah.setRole(UserRole.LEARNER);
         sarah.setBio("Professional photographer and cooking enthusiast. Teaching photography in exchange for language lessons.");
         sarah.setCity("Shymkent"); sarah.setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah");
         sarah = userRepo.save(sarah);
 
         User bekzat = new User(); bekzat.setEmail("bekzat@mail.com"); bekzat.setDisplayName("Bekzat Yermek");
-        bekzat.setPassword(encoder.encode("password123")); bekzat.setRole(UserRole.PROVIDER);
+        bekzat.setPassword(encoder.encode("password123")); bekzat.setRole(UserRole.LEARNER);
         bekzat.setBio("Business analyst and yoga instructor. Offering business analytics in exchange for cooking classes.");
         bekzat.setCity("Astana"); bekzat.setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Bekzat");
         bekzat = userRepo.save(bekzat);

@@ -3,6 +3,7 @@ package com.skillswap.service;
 import com.skillswap.dto.RatingCreateRequest;
 import com.skillswap.model.Rating;
 import com.skillswap.model.Session;
+import com.skillswap.model.enums.NotificationType;
 import com.skillswap.model.enums.SessionStatus;
 import com.skillswap.repository.RatingRepository;
 import com.skillswap.repository.SessionRepository;
@@ -18,9 +19,10 @@ public class RatingService {
     private final SessionRepository sessionRepo;
     private final SkillProfileRepository profileRepo;
     private final UserRepository userRepo;
+    private final NotificationService notifService;
 
-    public RatingService(RatingRepository r, SessionRepository s, SkillProfileRepository p, UserRepository u) {
-        this.ratingRepo = r; this.sessionRepo = s; this.profileRepo = p; this.userRepo = u;
+    public RatingService(RatingRepository r, SessionRepository s, SkillProfileRepository p, UserRepository u, NotificationService n) {
+        this.ratingRepo = r; this.sessionRepo = s; this.profileRepo = p; this.userRepo = u; this.notifService = n;
     }
 
     @Transactional
@@ -60,6 +62,13 @@ public class RatingService {
             p.setAverageRating(avg != null ? Math.round(avg * 10.0) / 10.0 : 0.0);
             profileRepo.save(p);
         });
+
+        String raterName = rating.getRater().getDisplayName();
+        String stars = "★".repeat(req.getScore()) + "☆".repeat(5 - req.getScore());
+        notifService.create(rateeId, NotificationType.NEW_RATING,
+                raterName + " rated your session " + stars
+                        + (req.getComment() != null && !req.getComment().isBlank()
+                           ? ": \"" + req.getComment() + "\"" : ""));
 
         return rating;
     }

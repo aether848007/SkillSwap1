@@ -2,6 +2,7 @@ package com.skillswap.controller;
 
 import com.skillswap.dto.AuthRequest;
 import com.skillswap.dto.AuthResponse;
+import com.skillswap.dto.GoogleAuthRequest;
 import com.skillswap.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -22,5 +23,10 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest req) {
         return ResponseEntity.ok(authService.login(req));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(@RequestBody GoogleAuthRequest req) {
+        return ResponseEntity.ok(authService.googleLogin(req.getCode(), req.getRedirectUri()));
     }
 }

@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    include: ['@stomp/stompjs', 'sockjs-client'],
+  },
   server: {
     port: 5173,
     proxy: {
@@ -13,6 +16,11 @@ export default defineConfig({
       '/uploads': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+      },
+      '/ws': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        ws: true,
       },
     },
   },

@@ -1,6 +1,8 @@
 package com.skillswap.service;
 
 import com.skillswap.model.Message;
+import com.skillswap.model.User;
+import com.skillswap.model.enums.NotificationType;
 import com.skillswap.repository.MessageRepository;
 import com.skillswap.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -10,17 +12,28 @@ import java.util.*;
 public class MessageService {
     private final MessageRepository msgRepo;
     private final UserRepository userRepo;
+    private final NotificationService notifService;
 
-    public MessageService(MessageRepository m, UserRepository u) { this.msgRepo = m; this.userRepo = u; }
+    public MessageService(MessageRepository m, UserRepository u, NotificationService n) {
+        this.msgRepo = m; this.userRepo = u; this.notifService = n;
+    }
 
     public Message sendMessage(UUID senderId, UUID receiverId, String content) {
         UUID convId = generateConversationId(senderId, receiverId);
+        User sender = userRepo.findById(senderId).orElseThrow();
+        User receiver = userRepo.findById(receiverId).orElseThrow();
         Message msg = new Message();
         msg.setConversationId(convId);
-        msg.setSender(userRepo.findById(senderId).orElseThrow());
-        msg.setReceiver(userRepo.findById(receiverId).orElseThrow());
+        msg.setSender(sender);
+        msg.setReceiver(receiver);
         msg.setContent(content);
-        return msgRepo.save(msg);
+        Message saved = msgRepo.save(msg);
+
+        String preview = content.length() > 60 ? content.substring(0, 60) + "…" : content;
+        notifService.create(receiverId, NotificationType.NEW_MESSAGE,
+                sender.getDisplayName() + " sent you a message: \"" + preview + "\"");
+
+        return saved;
     }
 
     public List<Message> getConversation(UUID convId) {
@@ -29,6 +42,10 @@ public class MessageService {
 
     public List<UUID> getUserConversations(UUID userId) {
         return msgRepo.findConversationIdsByUserId(userId);
+    }
+
+    public void markConversationRead(UUID convId, UUID userId) {
+        msgRepo.markConversationRead(convId, userId, java.time.LocalDateTime.now());
     }
 
     private UUID generateConversationId(UUID u1, UUID u2) {

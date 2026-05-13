@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
+import { useWebSocket } from '../hooks/useWebSocket'
 
 export default function MessagesPage() {
   const { user } = useAuth()
@@ -10,7 +11,6 @@ export default function MessagesPage() {
   const [newMsg, setNewMsg]               = useState('')
   const [loading, setLoading]             = useState(true)
   const chatEndRef   = useRef(null)
-  const pollRef      = useRef(null)
   const activeConvId = useRef(null)
 
   const fetchConversations = useCallback(async () => {
@@ -35,8 +35,9 @@ export default function MessagesPage() {
       }
       setConversations(convs)
       if (convs.length > 0 && !activeConvId.current) {
-        setActiveConv(convs[0])
-        activeConvId.current = convs[0].convId
+        const first = convs[0]
+        setActiveConv(first)
+        activeConvId.current = first.convId
       }
     } catch { /* ignore if backend down */ }
     setLoading(false)
@@ -50,38 +51,66 @@ export default function MessagesPage() {
     } catch { /* ignore */ }
   }, [])
 
-  useEffect(() => {
-    fetchConversations()
-  }, [fetchConversations])
+  useEffect(() => { fetchConversations() }, [fetchConversations])
 
   useEffect(() => {
     activeConvId.current = activeConv?.convId ?? null
     if (activeConv?.convId) {
       fetchMessages(activeConv.convId)
-      clearInterval(pollRef.current)
-      pollRef.current = setInterval(() => fetchMessages(activeConv.convId), 3000)
+      // Mark as read when opening a conversation
+      api.patch(`/messages/conversation/${activeConv.convId}/read`).catch(() => {})
     }
-    return () => clearInterval(pollRef.current)
   }, [activeConv?.convId, fetchMessages])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const sendMessage = async (e) => {
+  // Real-time messages via WebSocket
+  useWebSocket({
+    conversationId: activeConv?.convId,
+    onMessage: (msg) => {
+      if (msg.conversationId === activeConvId.current) {
+        setMessages(prev => {
+          const exists = prev.some(m => m.messageId === msg.messageId)
+          return exists ? prev : [...prev, msg]
+        })
+        // Mark the incoming message as read immediately
+        api.patch(`/messages/conversation/${msg.conversationId}/read`).catch(() => {})
+      }
+    },
+  })
+
+  const handleSend = async (e) => {
     e.preventDefault()
     if (!newMsg.trim() || !activeConv) return
     const content = newMsg
     setNewMsg('')
     try {
-      await api.post('/messages', { receiverId: activeConv.otherUser?.userId, content })
-      await fetchMessages(activeConv.convId)
+      const res = await api.post('/messages', { receiverId: activeConv.otherUser?.userId, content })
+      setMessages(prev => {
+        const exists = prev.some(m => m.messageId === res.data.messageId)
+        return exists ? prev : [...prev, res.data]
+      })
     } catch { /* ignore */ }
   }
 
   const formatTime = (dt) => {
     if (!dt) return ''
-    return new Date(dt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    return new Date(dt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const ReadTick = ({ msg }) => {
+    if (msg.sender?.userId !== user?.userId) return null
+    const read = !!msg.readAt
+    return (
+      <span style={{ marginLeft: 4, fontSize: '0.65rem', opacity: 0.8 }} title={read ? 'Read' : 'Sent'}>
+        {read
+          ? <svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 5 4 8 9 2"/><polyline points="5 5 8 8 13 2"/></svg>
+          : <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 5 4 8 9 2"/></svg>
+        }
+      </span>
+    )
   }
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading messages...</div>
@@ -98,7 +127,7 @@ export default function MessagesPage() {
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
           </svg>
           <h3>No messages yet</h3>
-          <p>Start a conversation by messaging a skill provider from their profile</p>
+          <p>Start a conversation by messaging someone from their profile</p>
         </div>
       ) : (
         <div className="messages-layout">
@@ -126,25 +155,31 @@ export default function MessagesPage() {
               <>
                 <div className="chat-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', color: 'white', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', color: 'var(--on-primary)', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {activeConv.otherUser?.displayName?.[0]?.toUpperCase()}
                     </div>
                     {activeConv.otherUser?.displayName}
                   </div>
                 </div>
                 <div className="chat-messages">
-                  {messages.map((msg, i) => (
-                    <div
-                      key={msg.messageId ?? i}
-                      className={`message-bubble ${msg.sender?.userId === user?.userId ? 'message-sent' : 'message-received'}`}
-                    >
-                      {msg.content}
-                      <div style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: 4 }}>{formatTime(msg.sentAt)}</div>
-                    </div>
-                  ))}
+                  {messages.map((msg, i) => {
+                    const isSent = msg.sender?.userId === user?.userId
+                    return (
+                      <div
+                        key={msg.messageId ?? i}
+                        className={`message-bubble ${isSent ? 'message-sent' : 'message-received'}`}
+                      >
+                        {msg.content}
+                        <div style={{ fontSize: '0.7rem', opacity: 0.75, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: isSent ? 'flex-end' : 'flex-start', gap: 2 }}>
+                          {formatTime(msg.sentAt)}
+                          <ReadTick msg={msg} />
+                        </div>
+                      </div>
+                    )
+                  })}
                   <div ref={chatEndRef} />
                 </div>
-                <form className="chat-input" onSubmit={sendMessage}>
+                <form className="chat-input" onSubmit={handleSend}>
                   <input
                     className="form-input"
                     value={newMsg}

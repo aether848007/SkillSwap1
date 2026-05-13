@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
+import Toast from '../components/Toast'
 
 export default function AdminPage() {
   const { user } = useAuth()
   const navigate  = useNavigate()
-  const [stats, setStats]   = useState(null)
-  const [users, setUsers]   = useState([])
+  const [stats, setStats]     = useState(null)
+  const [users, setUsers]     = useState([])
   const [loading, setLoading] = useState(true)
-  const [toast, setToast]   = useState('')
+  const [toast, setToast]     = useState('')
 
   useEffect(() => {
     if (user?.role !== 'ADMIN') { navigate('/'); return }
@@ -31,67 +32,79 @@ export default function AdminPage() {
   }
 
   const banUser = async (id, name) => {
-    if (!confirm(`Reset ${name}'s role to LEARNER?`)) return
+    if (!confirm(`Reset ${name}'s role to Learner?`)) return
     try {
       await api.patch(`/admin/users/${id}/ban`)
-      showToast(`${name} role reset`)
+      showToast(`${name}'s role reset`)
       fetchData()
-    } catch { showToast('Failed') }
+    } catch { showToast('Failed to update role') }
   }
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading...</div>
 
   return (
     <div className="container" style={{ paddingTop: 24 }}>
       <div className="page-header">
-        <h1>Admin Panel</h1>
+        <h1>Admin panel</h1>
         <p>Platform management</p>
       </div>
 
       {/* Stats */}
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16, marginBottom: 32 }}>
           {[
-            { label: 'Users',    value: stats.totalUsers },
+            { label: 'Members',  value: stats.totalUsers },
             { label: 'Skills',   value: stats.totalSkills },
             { label: 'Sessions', value: stats.totalSessions },
             { label: 'Ratings',  value: stats.totalRatings },
           ].map(s => (
-            <div key={s.label} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 16px', textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--primary)' }}>{s.value}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{s.label}</div>
+            <div key={s.label} className="card" style={{ textAlign: 'center', padding: '20px 16px' }}>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--primary)', lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: 6 }}>{s.label}</div>
             </div>
           ))}
         </div>
       )}
 
       {/* Users table */}
-      <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600 }}>Users</div>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600, fontSize: '0.95rem' }}>
+          All members
+        </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
-              <tr style={{ background: '#f9fafb' }}>
+              <tr style={{ background: 'var(--bg)' }}>
                 {['Name', 'Email', 'Role', 'Joined', 'Action'].map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {users.map(u => (
-                <tr key={u.userId} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '10px 16px', fontWeight: 500 }}>{u.displayName}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--text-secondary)' }}>{u.email}</td>
-                  <td style={{ padding: '10px 16px' }}>
-                    <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: u.role === 'ADMIN' ? '#fef3c7' : u.role === 'PROVIDER' ? '#dbeafe' : '#f3f4f6', color: u.role === 'ADMIN' ? '#b45309' : u.role === 'PROVIDER' ? '#1d4ed8' : '#6b7280' }}>
-                      {u.role}
+                <tr key={u.userId} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '12px 16px', fontWeight: 500 }}>{u.displayName}</td>
+                  <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{u.email}</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <span style={{
+                      padding: '2px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
+                      background: u.role === 'ADMIN' ? '#fef3c7' : 'var(--bg)',
+                      color: u.role === 'ADMIN' ? '#b45309' : 'var(--text-secondary)',
+                    }}>
+                      {u.role === 'ADMIN' ? 'Admin' : 'Member'}
                     </span>
                   </td>
-                  <td style={{ padding: '10px 16px', color: 'var(--text-secondary)' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
-                  <td style={{ padding: '10px 16px' }}>
+                  <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>
+                    {new Date(u.createdAt).toLocaleDateString(undefined)}
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
                     {u.role !== 'ADMIN' && u.userId !== user?.userId && (
-                      <button onClick={() => banUser(u.userId, u.displayName)}
-                        style={{ fontSize: 12, color: '#ef4444', background: 'none', border: '1px solid #fca5a5', borderRadius: 6, padding: '3px 10px', cursor: 'pointer' }}>
+                      <button
+                        onClick={() => banUser(u.userId, u.displayName)}
+                        style={{ fontSize: '0.78rem', color: 'var(--danger)', background: 'none', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
                         Reset role
                       </button>
                     )}
@@ -103,11 +116,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {toast && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#111', color: '#fff', padding: '10px 18px', borderRadius: 12, fontSize: 13, zIndex: 100 }}>
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} onClose={() => setToast('')} />
     </div>
   )
 }

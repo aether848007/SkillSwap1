@@ -12,4 +12,9 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
 
     @Query("SELECT DISTINCT m.conversationId FROM Message m WHERE m.sender.userId = :userId OR m.receiver.userId = :userId")
     List<UUID> findConversationIdsByUserId(@Param("userId") UUID userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("UPDATE Message m SET m.readAt = :now WHERE m.conversationId = :convId AND m.receiver.userId = :userId AND m.readAt IS NULL")
+    void markConversationRead(@Param("convId") UUID convId, @Param("userId") UUID userId, @Param("now") java.time.LocalDateTime now);
 }

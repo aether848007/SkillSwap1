@@ -20,6 +20,7 @@ public class SkillService {
 
     public SkillService(SkillRepository s, SkillProfileRepository p) { this.skillRepo = s; this.profileRepo = p; }
 
+    @Transactional
     public Skill addSkill(UUID userId, SkillCreateRequest req) {
         SkillProfile profile = profileRepo.findByUserUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Profile not found"));

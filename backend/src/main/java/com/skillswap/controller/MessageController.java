@@ -31,4 +31,11 @@ public class MessageController {
     public ResponseEntity<List<Message>> getConversation(@PathVariable UUID convId) {
         return ResponseEntity.ok(msgService.getConversation(convId));
     }
+
+    @PatchMapping("/conversation/{convId}/read")
+    public ResponseEntity<?> markRead(Authentication auth, @PathVariable UUID convId) {
+        UUID userId = (UUID) auth.getPrincipal();
+        msgService.markConversationRead(convId, userId);
+        return ResponseEntity.ok().build();
+    }
 }
