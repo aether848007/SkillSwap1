@@ -63,11 +63,16 @@ export default function LoginPage() {
         </div>
 
         <div className="auth-left-body">
+          <div className="auth-proof">
+            <span className="auth-proof-badge">★ 4.8 rating</span>
+            <span className="auth-proof-badge">1,200+ learners</span>
+            <span className="auth-proof-badge">100% free</span>
+          </div>
           <h1 className="auth-left-headline">
             Teach what you know.<br />Learn what you want.
           </h1>
           <p className="auth-left-sub">
-            Exchange skills with real peers. No money, no platforms —
+            Exchange skills with real peers. No money, no platforms,
             just two people with something the other wants to learn.
           </p>
           <ul className="auth-left-claims">
@@ -176,7 +181,7 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <button className="btn btn-primary btn-block btn-lg" type="submit" disabled={loading} style={{ marginTop: 4 }}>
+            <button className="auth-submit" type="submit" disabled={loading}>
               {loading ? 'Please wait...' : isLogin ? 'Sign in' : 'Create account'}
             </button>
           </form>

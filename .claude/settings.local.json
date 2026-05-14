@@ -4,7 +4,8 @@
       "Bash(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\Lenova\\\\Desktop\\\\skillswap\\\\backend\\\\src\\\\main\\\\resources\\\\db\\\\migration\")",
       "Bash(Out-Null)",
       "Bash(Write-Output \"done\")",
-      "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)"
+      "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-ChildItem \"C:\\\\\", \"C:\\\\Users\", \"$env:APPDATA\", \"$env:LOCALAPPDATA\" -Filter \"psql.exe\" -Recurse -ErrorAction SilentlyContinue -Depth 5 | Select-Object FullName -First 3)"
     ]
   }
 }

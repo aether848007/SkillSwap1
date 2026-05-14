@@ -99,7 +99,11 @@ export default function UserProfilePage() {
       )}
 
       <div className="profile-header">
-        <div className="profile-avatar">{profile.displayName?.[0]?.toUpperCase()}</div>
+        <div className="profile-avatar" style={{ padding: 0, overflow: 'hidden' }}>
+          {profile.avatarUrl
+            ? <img src={profile.avatarUrl} alt={profile.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : profile.displayName?.[0]?.toUpperCase()}
+        </div>
         <div className="profile-info" style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <h2>{profile.displayName}</h2>

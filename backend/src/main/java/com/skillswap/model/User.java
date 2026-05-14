@@ -21,6 +21,7 @@ public class User {
     @Column(nullable = false)
     private String displayName;
 
+    @Column(columnDefinition = "TEXT")
     private String avatarUrl;
 
     @Column(length = 1000)

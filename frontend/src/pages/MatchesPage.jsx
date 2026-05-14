@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 import ProposalModal from '../components/ProposalModal'
+import Toast from '../components/Toast'
 
 function Avatar({ user, size = 44 }) {
   if (user?.avatarUrl) {
@@ -118,22 +119,156 @@ function MatchCard({ match, onPropose }) {
   )
 }
 
+function parseSkills(s) {
+  if (!s) return []
+  if (Array.isArray(s)) return s
+  return String(s).split(',').map(x => x.trim()).filter(Boolean)
+}
+
+function IncomingProposalCard({ proposal, onAccept, onDecline, busy }) {
+  const navigate = useNavigate()
+  // Backend stores fields from sender's POV, so for the receiver they invert:
+  // proposal.iTeachThem  = what the sender offers to teach (sender→receiver)
+  // proposal.theyTeachMe = what the sender wants to learn (receiver→sender)
+  const theyTeachYou = parseSkills(proposal.iTeachThem)
+  const youTeachThem = parseSkills(proposal.theyTeachMe)
+  return (
+    <div style={{
+      background: 'var(--bg-card)', border: '2px solid var(--primary)', borderRadius: 'var(--radius-lg)',
+      padding: '20px', display: 'flex', flexDirection: 'column', gap: 12,
+      boxShadow: '0 4px 0 var(--primary-shadow)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Avatar user={proposal.otherUser} size={48} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 900, fontSize: '0.98rem', color: 'var(--text)' }}>
+            {proposal.otherUser?.displayName} wants to swap
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--mute)', fontWeight: 700 }}>
+            {new Date(proposal.createdAt).toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      {proposal.message && (
+        <div style={{
+          background: 'var(--surface-1)', borderRadius: 'var(--radius-sm)',
+          padding: '10px 14px', fontSize: '0.88rem', color: 'var(--text)',
+          fontWeight: 600, lineHeight: 1.5, fontStyle: 'italic',
+        }}>
+          "{proposal.message}"
+        </div>
+      )}
+
+      {theyTeachYou.length > 0 && (
+        <div>
+          <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 6 }}>
+            They can teach you
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {theyTeachYou.map(s => <SkillChip key={s} label={s} variant="offer" />)}
+          </div>
+        </div>
+      )}
+
+      {youTeachThem.length > 0 && (
+        <div>
+          <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 6 }}>
+            You can teach them
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {youTeachThem.map(s => <SkillChip key={s} label={s} variant="want" />)}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <button
+          className="btn btn-sm btn-outline"
+          onClick={() => navigate(`/user/${proposal.otherUser?.userId}`)}
+          disabled={busy}
+        >
+          View profile
+        </button>
+        <div style={{ flex: 1 }} />
+        <button
+          className="btn btn-sm btn-ghost"
+          onClick={() => onDecline(proposal.matchRequestId)}
+          disabled={busy}
+        >
+          Decline
+        </button>
+        <button
+          className="btn btn-sm btn-primary"
+          onClick={() => onAccept(proposal.matchRequestId)}
+          disabled={busy}
+        >
+          Accept
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function MatchesPage() {
   const { user } = useAuth()
   const [matches, setMatches] = useState([])
+  const [incoming, setIncoming] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [proposing, setProposing] = useState(null)
+  const [actionBusy, setActionBusy] = useState(null)
+  const [toast, setToast] = useState('')
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2800) }
+
+  const loadIncoming = () => {
+    api.get('/match-requests')
+      .then(r => {
+        const recvPending = (r.data || []).filter(p => p.direction === 'received' && p.status === 'PENDING')
+        setIncoming(recvPending)
+      })
+      .catch(() => {})
+  }
 
   useEffect(() => {
-    api.get('/matches')
-      .then(r => setMatches(r.data))
-      .catch(e => {
+    Promise.all([
+      api.get('/matches').then(r => setMatches(r.data)).catch(e => {
         console.error('Failed to load matches:', e)
         setError(e.response?.data?.error || 'Failed to load matches')
-      })
-      .finally(() => setLoading(false))
+      }),
+      api.get('/match-requests').then(r => {
+        const recvPending = (r.data || []).filter(p => p.direction === 'received' && p.status === 'PENDING')
+        setIncoming(recvPending)
+      }).catch(() => {}),
+    ]).finally(() => setLoading(false))
   }, [])
+
+  const handleAccept = async (id) => {
+    setActionBusy(id)
+    try {
+      await api.patch(`/match-requests/${id}/accept`)
+      setIncoming(prev => prev.filter(p => p.matchRequestId !== id))
+      showToast('Accepted! Start a conversation in Messages.')
+    } catch (e) {
+      showToast(e.response?.data?.error || 'Failed to accept')
+    } finally {
+      setActionBusy(null)
+    }
+  }
+
+  const handleDecline = async (id) => {
+    setActionBusy(id)
+    try {
+      await api.patch(`/match-requests/${id}/decline`)
+      setIncoming(prev => prev.filter(p => p.matchRequestId !== id))
+      showToast('Declined.')
+    } catch (e) {
+      showToast(e.response?.data?.error || 'Failed to decline')
+    } finally {
+      setActionBusy(null)
+    }
+  }
 
   const mySkills = user?.skills || []
   const hasOffered = mySkills.some(s => s.isOffered)
@@ -145,6 +280,34 @@ export default function MatchesPage() {
         <h1>Your matches</h1>
         <p>People you can trade skills with — ranked by compatibility</p>
       </div>
+
+      {!loading && incoming.length > 0 && (
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Incoming proposals
+            </h2>
+            <span style={{
+              background: 'var(--primary)', color: 'white', borderRadius: 9999,
+              fontSize: '0.7rem', fontWeight: 900, padding: '3px 10px',
+              boxShadow: '0 2px 0 var(--primary-shadow)',
+            }}>
+              {incoming.length}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
+            {incoming.map(p => (
+              <IncomingProposalCard
+                key={p.matchRequestId}
+                proposal={p}
+                onAccept={handleAccept}
+                onDecline={handleDecline}
+                busy={actionBusy === p.matchRequestId}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {!loading && (!hasOffered || !hasWanted) && (
         <div style={{
@@ -194,9 +357,10 @@ export default function MatchesPage() {
       {proposing && (
         <ProposalModal
           match={proposing}
-          onClose={() => setProposing(null)}
+          onClose={() => { setProposing(null); loadIncoming() }}
         />
       )}
+      <Toast message={toast} onClose={() => setToast('')} />
     </div>
   )
 }

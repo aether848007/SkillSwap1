@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import { useJsApiLoader, StandaloneSearchBox } from '@react-google-maps/api';
 import Toast from '../components/Toast';
-
-const MAPS_LIBS = ['places'];
 
 const CATEGORIES = [
   'PROGRAMMING', 'DESIGN', 'LANGUAGE', 'MUSIC',
@@ -19,6 +16,30 @@ const LEVEL_CLASS = {
 };
 
 const toLabel = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+
+const compressImage = (file, maxSize = 400, quality = 0.82) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = reject
+    reader.onload = (ev) => {
+      const img = new Image()
+      img.onerror = reject
+      img.onload = () => {
+        let { width, height } = img
+        if (width > maxSize || height > maxSize) {
+          if (width > height) { height = Math.round((height * maxSize) / width); width = maxSize }
+          else { width = Math.round((width * maxSize) / height); height = maxSize }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Compression failed')), 'image/jpeg', quality)
+      }
+      img.src = ev.target.result
+    }
+    reader.readAsDataURL(file)
+  })
 
 const DEFAULT_SKILL_FORM = {
   title: '', category: 'PROGRAMMING', proficiencyLevel: 'BEGINNER',
@@ -39,13 +60,7 @@ export default function ProfilePage() {
   const [editForm, setEditForm]   = useState({ displayName: '', bio: '', city: '', latitude: null, longitude: null });
   const [skillForm, setSkillForm] = useState(DEFAULT_SKILL_FORM);
 
-  const searchBoxRef = useRef(null);
   const fileInputRef = useRef(null);
-
-  const { isLoaded: mapsLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries: MAPS_LIBS,
-  });
 
   useEffect(() => { loadData(); }, []);
 
@@ -71,11 +86,31 @@ export default function ProfilePage() {
     }
   };
 
+  const geocodeCity = async (cityName) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityName)}&format=json&limit=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      const data = await res.json();
+      if (data.length > 0) return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
+    } catch {}
+    return null;
+  };
+
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await api.put('/users/me', editForm);
+      let form = { ...editForm };
+      if (form.city && (!form.latitude || !form.longitude)) {
+        const geo = await geocodeCity(form.city);
+        if (geo) {
+          form = { ...form, ...geo };
+          setEditForm(f => ({ ...f, ...geo }));
+        }
+      }
+      const res = await api.put('/users/me', form);
       setProfile(res.data);
       setEditing(false);
       showToast('Profile updated');
@@ -152,13 +187,14 @@ export default function ProfilePage() {
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
+                e.target.value = '';
                 const localUrl = URL.createObjectURL(file);
                 setProfile(p => ({ ...p, avatarUrl: localUrl }));
-                e.target.value = '';
-                const form = new FormData();
-                form.append('file', file);
                 try {
-                  const res = await api.post('/users/me/avatar', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+                  const compressed = await compressImage(file);
+                  const form = new FormData();
+                  form.append('file', compressed, 'avatar.jpg');
+                  const res = await api.post('/users/me/avatar', form);
                   setProfile(p => ({ ...p, avatarUrl: res.data.avatarUrl }));
                   updateUser({ avatarUrl: res.data.avatarUrl });
                   showToast('Photo updated');
@@ -215,40 +251,16 @@ export default function ProfilePage() {
             </div>
             <div>
               <label className="form-label">Location</label>
-              {mapsLoaded ? (
-                <StandaloneSearchBox
-                  onLoad={ref => (searchBoxRef.current = ref)}
-                  onPlacesChanged={() => {
-                    const places = searchBoxRef.current?.getPlaces();
-                    if (!places || places.length === 0) return;
-                    const place = places[0];
-                    const lat = place.geometry?.location?.lat();
-                    const lng = place.geometry?.location?.lng();
-                    setEditForm(f => ({
-                      ...f,
-                      city: place.formatted_address || place.name || f.city,
-                      latitude: lat ?? f.latitude,
-                      longitude: lng ?? f.longitude,
-                    }));
-                  }}
-                >
-                  <input
-                    type="text"
-                    value={editForm.city}
-                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                    placeholder="City, Country"
-                    className="form-input"
-                  />
-                </StandaloneSearchBox>
-              ) : (
-                <input
-                  type="text"
-                  value={editForm.city}
-                  onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                  placeholder="City, Country"
-                  className="form-input"
-                />
-              )}
+              <input
+                type="text"
+                value={editForm.city}
+                onChange={(e) => setEditForm({ ...editForm, city: e.target.value, latitude: null, longitude: null })}
+                placeholder="City, Country"
+                className="form-input"
+              />
+              <div style={{ fontSize: '0.78rem', color: 'var(--mute)', marginTop: 4 }}>
+                Coordinates are set automatically when you save.
+              </div>
             </div>
             <button
               type="submit"

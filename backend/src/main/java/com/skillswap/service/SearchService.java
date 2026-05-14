@@ -30,6 +30,18 @@ public class SearchService {
     }
 
     @Transactional(readOnly = true)
+    public List<SkillDto> searchByCity(String city) {
+        String lower = city.toLowerCase().trim();
+        return skillRepo.findByIsOfferedTrueAndIsActiveTrue().stream()
+                .filter(s -> {
+                    String c = s.getSkillProfile().getUser().getCity();
+                    return c != null && c.toLowerCase().contains(lower);
+                })
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<SkillDto> searchNearby(double lat, double lng, double radiusKm, String query) {
         List<Skill> candidates = (query != null && !query.isBlank())
                 ? skillRepo.searchSkills(query)

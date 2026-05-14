@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: skillswap-backend
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 10MB
   datasource:
     url: jdbc:h2:mem:skillswap;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver

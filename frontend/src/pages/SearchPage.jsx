@@ -1,40 +1,45 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  GoogleMap,
-  Marker,
-  InfoWindow,
-  useJsApiLoader,
-} from '@react-google-maps/api'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import markerIconPng from 'leaflet/dist/images/marker-icon.png'
+import markerShadowPng from 'leaflet/dist/images/marker-shadow.png'
 import api from '../api/axios'
 import SkillCard from '../components/SkillCard'
+import { useAuth } from '../context/AuthContext'
+
+// Fix Leaflet default marker icons broken by Vite's asset pipeline
+const leafletIcon = new L.Icon({
+  iconUrl: markerIconPng,
+  shadowUrl: markerShadowPng,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+})
 
 const CATEGORIES = ['All', 'PROGRAMMING', 'DESIGN', 'LANGUAGE', 'MUSIC', 'BUSINESS', 'COOKING', 'PHOTOGRAPHY', 'FITNESS']
-const MAP_LIBS = ['places']
 const MAP_STYLE = { width: '100%', height: '520px' }
-const DEFAULT_CENTER = { lat: 51.505, lng: -0.09 }
+const DEFAULT_CENTER = [48.0, 66.0] // Kazakhstan center
 
 const toLabel = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''
 
 export default function SearchPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [skills, setSkills] = useState([])
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
   const [sort, setSort] = useState('rating')
   const [loading, setLoading] = useState(false)
   const [view, setView] = useState('list')
-  const [selected, setSelected] = useState(null)
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER)
   const [locating, setLocating] = useState(false)
+  const [nearMeMsg, setNearMeMsg] = useState('')
   const [page, setPage] = useState(0)
   const [total, setTotal] = useState(0)
   const PAGE_SIZE = 20
-
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries: MAP_LIBS,
-  })
 
   useEffect(() => { setPage(0); fetchSkills(undefined, 0, true) }, [category])
 
@@ -46,7 +51,7 @@ export default function SearchPage() {
       else if (category !== 'All') params.category = category
       const res = await api.get('/search', { params })
       let data = res.data.content ?? res.data
-      const tot  = res.data.total ?? data.length
+      const tot = res.data.total ?? data.length
       if (sort === 'rating') data.sort((a, b) => (b.providerRating || 0) - (a.providerRating || 0))
       setSkills(prev => reset || p === 0 ? data : [...prev, ...data])
       setTotal(tot)
@@ -63,30 +68,60 @@ export default function SearchPage() {
   const fetchNearby = async (lat, lng) => {
     setLoading(true)
     try {
-      const params = { lat, lng, radiusKm: 25 }
+      const params = { lat, lng, radiusKm: 50 }
       if (query) params.query = query
       const res = await api.get('/search/nearby', { params })
       setSkills(res.data)
-      setMapCenter({ lat, lng })
+      setMapCenter([lat, lng])
+      setView('map')
+    } catch (e) { console.error(e) }
+    setLoading(false)
+  }
+
+  const fetchByCity = async (city) => {
+    setLoading(true)
+    try {
+      const res = await api.get('/search/by-city', { params: { city } })
+      setSkills(res.data)
+      const first = res.data.find(s => s.providerLat && s.providerLng)
+      if (first) setMapCenter([first.providerLat, first.providerLng])
+      setView(res.data.length > 0 ? 'list' : view)
     } catch (e) { console.error(e) }
     setLoading(false)
   }
 
   const handleNearMe = () => {
-    if (!navigator.geolocation) return
+    setNearMeMsg('')
+    if (!navigator.geolocation) {
+      if (user?.city) {
+        setNearMeMsg(`Showing people in ${user.city}`)
+        fetchByCity(user.city)
+      }
+      return
+    }
     setLocating(true)
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         setLocating(false)
         fetchNearby(coords.latitude, coords.longitude)
       },
-      () => setLocating(false)
+      () => {
+        setLocating(false)
+        if (user?.city) {
+          setNearMeMsg(`Location access denied — showing people in ${user.city}`)
+          fetchByCity(user.city)
+        } else {
+          setNearMeMsg('Enable location access or set your city in your profile.')
+        }
+      },
+      { timeout: 8000 }
     )
   }
 
   const handleSearch = (e) => {
     e.preventDefault()
     setPage(0)
+    setNearMeMsg('')
     fetchSkills(query || undefined, 0, true)
   }
 
@@ -113,7 +148,7 @@ export default function SearchPage() {
         <div className="chip-bar" style={{ flex: 1, minWidth: 0 }}>
           {CATEGORIES.map(cat => (
             <button key={cat} className={`chip ${category === cat ? 'active' : ''}`}
-              onClick={() => { setCategory(cat); setQuery('') }}>
+              onClick={() => { setCategory(cat); setQuery(''); setNearMeMsg('') }}>
               {cat === 'All' ? 'All' : toLabel(cat)}
             </button>
           ))}
@@ -161,54 +196,53 @@ export default function SearchPage() {
         </div>
       </div>
 
+      {nearMeMsg && (
+        <div style={{ background: 'var(--primary-pale)', border: '1px solid var(--primary)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', marginBottom: 16, fontSize: '0.85rem', color: 'var(--positive-deep)' }}>
+          {nearMeMsg}
+        </div>
+      )}
+
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>Searching...</div>
       ) : view === 'map' ? (
-        isLoaded ? (
-          <div style={{ borderRadius: 'var(--radius)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-            <GoogleMap mapContainerStyle={MAP_STYLE} center={mapCenter} zoom={mapSkills.length ? 10 : 4}>
-              {mapSkills.map(skill => (
-                <Marker
-                  key={skill.skillId}
-                  position={{ lat: skill.providerLat, lng: skill.providerLng }}
-                  onClick={() => setSelected(skill)}
-                  title={skill.title}
-                />
-              ))}
-              {selected && (
-                <InfoWindow
-                  position={{ lat: selected.providerLat, lng: selected.providerLng }}
-                  onCloseClick={() => setSelected(null)}
-                >
-                  <div style={{ maxWidth: 200, fontFamily: 'var(--font)' }}>
-                    <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text)' }}>{selected.title}</div>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 4 }}>
-                      {selected.providerName} · {selected.providerCity}
+        <div style={{ borderRadius: 'var(--radius)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+          <MapContainer center={mapCenter} zoom={mapSkills.length ? 11 : 4} style={MAP_STYLE}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {mapSkills.map(skill => (
+              <Marker
+                key={skill.skillId}
+                position={[skill.providerLat, skill.providerLng]}
+                icon={leafletIcon}
+              >
+                <Popup>
+                  <div style={{ minWidth: 160, fontFamily: 'var(--font)' }}>
+                    <div style={{ fontWeight: 700, marginBottom: 3 }}>{skill.title}</div>
+                    <div style={{ fontSize: '0.82rem', color: '#555', marginBottom: 3 }}>
+                      {skill.providerName} · {skill.providerCity}
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
-                      {selected.providerRating ? `★ ${selected.providerRating.toFixed(1)}` : 'New'} · {toLabel(selected.category)}
+                    <div style={{ fontSize: '0.78rem', color: '#777', marginBottom: 8 }}>
+                      {skill.providerRating ? `★ ${skill.providerRating.toFixed(1)}` : 'New'} · {toLabel(skill.category)}
                     </div>
                     <button
-                      onClick={() => navigate(`/user/${selected.providerUserId}`)}
-                      style={{ fontSize: '0.78rem', color: 'var(--primary)', cursor: 'pointer', background: 'none', border: 'none', padding: 0, textDecoration: 'underline', fontFamily: 'inherit' }}
+                      onClick={() => navigate(`/user/${skill.providerUserId}`)}
+                      style={{ fontSize: '0.8rem', color: 'var(--positive-deep)', cursor: 'pointer', background: 'none', border: 'none', padding: 0, textDecoration: 'underline', fontFamily: 'inherit', fontWeight: 600 }}
                     >
                       View profile →
                     </button>
                   </div>
-                </InfoWindow>
-              )}
-            </GoogleMap>
-            {mapSkills.length === 0 && (
-              <div style={{ padding: '12px 16px', fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'var(--bg)' }}>
-                No providers with location data. Providers must set their city in their profile to appear on the map.
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>
-            Loading map... Make sure VITE_GOOGLE_MAPS_API_KEY is set in your .env file.
-          </div>
-        )
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+          {mapSkills.length === 0 && (
+            <div style={{ padding: '12px 16px', fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'var(--bg)' }}>
+              No providers with location data in this area. Make sure users have saved their city in their profile.
+            </div>
+          )}
+        </div>
       ) : skills.length === 0 ? (
         <div className="empty-state">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>

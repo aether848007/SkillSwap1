@@ -27,6 +27,11 @@ public class SearchController {
         return ResponseEntity.ok(Map.of("content", content, "total", total, "page", page, "size", size));
     }
 
+    @GetMapping("/by-city")
+    public ResponseEntity<List<SkillDto>> byCity(@RequestParam String city) {
+        return ResponseEntity.ok(searchService.searchByCity(city));
+    }
+
     @GetMapping("/nearby")
     public ResponseEntity<List<SkillDto>> nearby(
             @RequestParam double lat,
