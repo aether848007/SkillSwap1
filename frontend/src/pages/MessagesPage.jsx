@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import { useWebSocket } from '../hooks/useWebSocket'
 
 export default function MessagesPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [conversations, setConversations] = useState([])
   const [activeConv, setActiveConv]       = useState(null)
   const [messages, setMessages]           = useState([])
@@ -138,7 +140,12 @@ export default function MessagesPage() {
                 className={`conv-item ${activeConv?.convId === conv.convId ? 'active' : ''}`}
                 onClick={() => setActiveConv(conv)}
               >
-                <div className="avatar">{conv.otherUser?.displayName?.[0]?.toUpperCase()}</div>
+                <div
+                  className="avatar"
+                  onClick={e => { e.stopPropagation(); navigate(`/user/${conv.otherUser?.userId}`) }}
+                  style={{ cursor: 'pointer' }}
+                  title={`View ${conv.otherUser?.displayName}'s profile`}
+                >{conv.otherUser?.displayName?.[0]?.toUpperCase()}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{conv.otherUser?.displayName}</div>
                   <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -154,11 +161,15 @@ export default function MessagesPage() {
             {activeConv ? (
               <>
                 <div className="chat-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    onClick={() => navigate(`/user/${activeConv.otherUser?.userId}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                    title={`View ${activeConv.otherUser?.displayName}'s profile`}
+                  >
                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', color: 'var(--on-primary)', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {activeConv.otherUser?.displayName?.[0]?.toUpperCase()}
                     </div>
-                    {activeConv.otherUser?.displayName}
+                    <span style={{ fontWeight: 600 }}>{activeConv.otherUser?.displayName}</span>
                   </div>
                 </div>
                 <div className="chat-messages">

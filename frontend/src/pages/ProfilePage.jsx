@@ -100,6 +100,7 @@ export default function ProfilePage() {
     try {
       const res = await api.put('/users/me', editForm);
       setProfile(res.data);
+      updateUser({ displayName: res.data.displayName, bio: res.data.bio, city: res.data.city });
       setEditing(false);
       showToast('Profile updated');
     } catch {

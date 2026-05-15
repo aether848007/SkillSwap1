@@ -31,39 +31,45 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         if (userRepo.count() > 0) return;
 
+        // Real admin account
+        User admin = new User(); admin.setEmail("bekaaliyev848007@gmail.com"); admin.setDisplayName("Admin");
+        admin.setPassword(encoder.encode("password123")); admin.setRole(UserRole.ADMIN);
+        admin.setEmailVerified(true); admin.setCity("Astana");
+        userRepo.save(admin);
+
         // Users
         User asel = new User(); asel.setEmail("asel@mail.com"); asel.setDisplayName("Asel Nurbekova");
-        asel.setPassword(encoder.encode("password123")); asel.setRole(UserRole.LEARNER);
+        asel.setPassword(encoder.encode("password123")); asel.setRole(UserRole.LEARNER); asel.setEmailVerified(true);
         asel.setBio("CS student passionate about Python and AI. Looking to improve my English skills.");
         asel.setCity("Almaty"); asel.setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Asel");
         asel = userRepo.save(asel);
 
         User dmitri = new User(); dmitri.setEmail("dmitri@mail.com"); dmitri.setDisplayName("Dmitri Volkov");
-        dmitri.setPassword(encoder.encode("password123")); dmitri.setRole(UserRole.LEARNER);
+        dmitri.setPassword(encoder.encode("password123")); dmitri.setRole(UserRole.LEARNER); dmitri.setEmailVerified(true);
         dmitri.setBio("Freelance graphic designer with 10 years of experience. Want to learn Python for automation.");
         dmitri.setCity("Astana"); dmitri.setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Dmitri");
         dmitri = userRepo.save(dmitri);
 
         User mira = new User(); mira.setEmail("mira@mail.com"); mira.setDisplayName("Mira Sadvakassova");
-        mira.setPassword(encoder.encode("password123")); mira.setRole(UserRole.ADMIN);
+        mira.setPassword(encoder.encode("password123")); mira.setRole(UserRole.ADMIN); mira.setEmailVerified(true);
         mira.setBio("Platform moderator ensuring community safety and quality.");
         mira.setCity("Astana"); mira.setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Mira");
         mira = userRepo.save(mira);
 
         User alex = new User(); alex.setEmail("alex@mail.com"); alex.setDisplayName("Alexander Kim");
-        alex.setPassword(encoder.encode("password123")); alex.setRole(UserRole.LEARNER);
+        alex.setPassword(encoder.encode("password123")); alex.setRole(UserRole.LEARNER); alex.setEmailVerified(true);
         alex.setBio("Full-stack developer and music enthusiast. I teach JavaScript and want to learn guitar.");
         alex.setCity("Almaty"); alex.setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Alex");
         alex = userRepo.save(alex);
 
         User sarah = new User(); sarah.setEmail("sarah@mail.com"); sarah.setDisplayName("Sarah Omarova");
-        sarah.setPassword(encoder.encode("password123")); sarah.setRole(UserRole.LEARNER);
+        sarah.setPassword(encoder.encode("password123")); sarah.setRole(UserRole.LEARNER); sarah.setEmailVerified(true);
         sarah.setBio("Professional photographer and cooking enthusiast. Teaching photography in exchange for language lessons.");
         sarah.setCity("Shymkent"); sarah.setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah");
         sarah = userRepo.save(sarah);
 
         User bekzat = new User(); bekzat.setEmail("bekzat@mail.com"); bekzat.setDisplayName("Bekzat Yermek");
-        bekzat.setPassword(encoder.encode("password123")); bekzat.setRole(UserRole.LEARNER);
+        bekzat.setPassword(encoder.encode("password123")); bekzat.setRole(UserRole.LEARNER); bekzat.setEmailVerified(true);
         bekzat.setBio("Business analyst and yoga instructor. Offering business analytics in exchange for cooking classes.");
         bekzat.setCity("Astana"); bekzat.setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Bekzat");
         bekzat = userRepo.save(bekzat);

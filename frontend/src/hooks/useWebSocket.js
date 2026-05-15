@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 
-const WS_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/ws'
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
 
 export function useWebSocket({ onMessage, onNotification, conversationId } = {}) {
   const clientRef = useRef(null)

@@ -15,7 +15,7 @@ export default function OAuthCallbackPage() {
     const googleError = searchParams.get('error')
 
     if (googleError) {
-      setErr(`Google returned: ${googleError}. Make sure http://localhost:5173/auth/callback is in your Google Cloud authorized redirect URIs.`)
+      setErr(`Google returned: ${googleError}. Make sure ${window.location.origin}/auth/callback is in your Google Cloud authorized redirect URIs.`)
       return
     }
     if (!code) {

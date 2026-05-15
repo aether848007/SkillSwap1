@@ -102,7 +102,7 @@ export default function SearchPage() {
         </div>
       </form>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 20 }}>
         <div className="chip-bar" style={{ flex: 1, minWidth: 0 }}>
           {CATEGORIES.map(cat => (
             <button key={cat} className={`chip ${category === cat && !cityOnly ? 'active' : ''}`}
@@ -112,20 +112,22 @@ export default function SearchPage() {
           ))}
         </div>
 
+        <div style={{ width: 1, height: 28, background: 'var(--border)', flexShrink: 0, margin: '0 16px' }} />
+
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-          {user?.city && (
-            <button
-              type="button"
-              className={`btn btn-sm ${cityOnly ? 'btn-primary' : 'btn-outline'}`}
-              onClick={toggleCityFilter}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-              </svg>
-              {user.city}
-            </button>
-          )}
+          <button
+            type="button"
+            className={`btn btn-sm ${cityOnly ? 'btn-primary' : 'btn-outline'}`}
+            onClick={toggleCityFilter}
+            disabled={!user?.city}
+            title={user?.city ? `Show skills in ${user.city}` : 'Set your city in profile to filter by location'}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            {user?.city || 'My city'}
+          </button>
 
           <select className="form-select" style={{ width: 'auto' }} value={sort} onChange={e => setSort(e.target.value)}>
             <option value="rating">Top rated</option>

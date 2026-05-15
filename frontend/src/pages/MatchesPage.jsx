@@ -256,19 +256,19 @@ export default function MatchesPage() {
           <h1>Your matches</h1>
           <p>People you can trade skills with — ranked by compatibility</p>
         </div>
-        {user?.city && (
-          <button
-            type="button"
-            className={`btn btn-sm ${cityOnly ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => setCityOnly(v => !v)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginTop: 4 }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-            </svg>
-            {user.city} only
-          </button>
-        )}
+        <button
+          type="button"
+          className={`btn btn-sm ${cityOnly ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setCityOnly(v => !v)}
+          disabled={!user?.city}
+          title={user?.city ? `Show matches in ${user.city} only` : 'Set your city in profile to filter by location'}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginTop: 4 }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+          {user?.city ? `${user.city} only` : 'My city'}
+        </button>
       </div>
 
       {!loading && incoming.length > 0 && (
