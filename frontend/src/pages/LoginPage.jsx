@@ -46,12 +46,6 @@ export default function LoginPage() {
     setPassword('')
   }
 
-  const fillDemo = (demoEmail) => {
-    setEmail(demoEmail)
-    setPassword('password123')
-    setIsLogin(true)
-  }
-
   const switchTab = (loginTab) => {
     setIsLogin(loginTab)
     setError('')
@@ -209,18 +203,6 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              {import.meta.env.DEV && (
-                <div className="auth-demo">
-                  <div className="auth-demo-title">Demo accounts (click to fill)</div>
-                  <div className="auth-demo-list">
-                    <button type="button" onClick={() => fillDemo('asel@mail.com')}>Asel — asel@mail.com</button>
-                    <button type="button" onClick={() => fillDemo('dmitri@mail.com')}>Dmitri — dmitri@mail.com</button>
-                    <button type="button" onClick={() => fillDemo('mira@mail.com')}>Mira (Admin) — mira@mail.com</button>
-                    <button type="button" onClick={() => fillDemo('alex@mail.com')}>Alex — alex@mail.com</button>
-                  </div>
-                  <div className="auth-demo-pw">Password for all: password123. The OTP code prints to the backend log.</div>
-                </div>
-              )}
             </>
           )}
         </div>
