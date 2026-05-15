@@ -21,7 +21,7 @@ import java.util.List;
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
 
-    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
@@ -34,7 +34,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/h2-console/**", "/api/search/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/search/**", "/actuator/health/**").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()  // only reachable when dev profile enables H2
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
@@ -43,6 +44,11 @@ public class SecurityConfig {
                     response.setContentType("application/json");
                     response.setStatus(401);
                     response.getWriter().write("{\"error\":\"Unauthorized\"}");
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setContentType("application/json");
+                    response.setStatus(403);
+                    response.getWriter().write("{\"error\":\"Forbidden\"}");
                 })
             )
             .headers(h -> h.frameOptions(f -> f.sameOrigin()))

@@ -1,32 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-
-  <!-- Building: left perspective face (green parallelogram) -->
-  <polygon fill="#5c8a5c" points="26,66 44,52 44,186 26,186"/>
-
-  <!-- Building: front face (white rectangle) -->
-  <rect fill="white" x="44" y="52" width="138" height="134"/>
-
-  <!-- Door: rectangular notch cut from lower-left of building -->
-  <rect fill="white" x="26" y="144" width="52" height="42"/>
-
-  <!-- Window: 2x2 grid of green squares on the white front face -->
-  <rect fill="#5c8a5c" x="98"  y="98"  width="26" height="26"/>
-  <rect fill="#5c8a5c" x="138" y="98"  width="26" height="26"/>
-  <rect fill="#5c8a5c" x="98"  y="138" width="26" height="26"/>
-  <rect fill="#5c8a5c" x="138" y="138" width="26" height="26"/>
-
-  <!-- Graduation cap: large flat diamond sitting atop the building -->
-  <polygon fill="#5c8a5c" points="6,58 100,15 194,58 100,98"/>
-
-  <!-- Tassel cord from the cap's left corner -->
-  <path fill="none" stroke="#5c8a5c" stroke-width="5" stroke-linecap="round"
-        d="M 6,58 C 2,84 14,114 18,134"/>
-
-  <!-- Tassel knot -->
-  <circle fill="#5c8a5c" cx="18" cy="141" r="7"/>
-
-  <!-- Tassel fringe (three hanging strands) -->
-  <path fill="none" stroke="#5c8a5c" stroke-width="4" stroke-linecap="round"
-        d="M 11,148 L 7,170 M 19,149 L 17,172 M 27,148 L 31,170"/>
-
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="16" fill="#9fe870"/>
+  <g fill="none" stroke="#0e0f0c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 24 H46"/>
+    <path d="M39 17 L46 24 L39 31"/>
+    <path d="M48 40 H18"/>
+    <path d="M25 33 L18 40 L25 47"/>
+  </g>
 </svg>

@@ -8,6 +8,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    strictPort: true,  // fail fast if 5173 is busy — Google OAuth redirect URI is pinned to this port
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

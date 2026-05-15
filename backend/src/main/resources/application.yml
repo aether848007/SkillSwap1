@@ -4,44 +4,56 @@ server:
 spring:
   application:
     name: skillswap-backend
+  profiles:
+    default: dev
   servlet:
     multipart:
       max-file-size: 8MB
       max-request-size: 10MB
-  datasource:
-    url: jdbc:h2:mem:skillswap;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-      settings:
-        web-allow-others: true
-  flyway:
-    enabled: false
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
 
 jwt:
-  secret: ${JWT_SECRET:SkillSwapSecretKeyForJWTTokenGeneration2024VeryLongSecretKeyThatIsAtLeast256BitsLongForHS256}
+  # Default is a dev-only fallback. Production MUST override via JWT_SECRET env var
+  # (the production docker-compose .env file is the canonical place).
+  secret: ${JWT_SECRET:dev-only-jwt-secret-not-for-production-at-least-256-bits-of-padding-here-to-meet-hs256-key-length}
   expiration: 3600000
   refresh-expiration: 604800000
 
 app:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000}
+  mail:
+    from: ${MAIL_FROM:no-reply@skillswap.local}
+
+# Mail settings are only honoured when MAIL_HOST is set. When unset the auto-configuration
+# is skipped and OTP codes are logged to stdout (see EmailService).
+spring.mail:
+  host:     ${MAIL_HOST:}
+  port:     ${MAIL_PORT:587}
+  username: ${MAIL_USERNAME:}
+  password: ${MAIL_PASSWORD:}
+  properties:
+    mail:
+      smtp:
+        auth: true
+        starttls:
+          enable: true
 
 google:
-  client-id: ${GOOGLE_CLIENT_ID:1043052570649-5lvenpma6kpv7fj89235r54dbbk6d07p.apps.googleusercontent.com}
-  client-secret: ${GOOGLE_CLIENT_SECRET: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}
+  client-id: ${GOOGLE_CLIENT_ID:}
+  client-secret: ${GOOGLE_CLIENT_SECRET:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+      base-path: /actuator
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
 
 logging:
   level:
-    com.skillswap: DEBUG
+    com.skillswap: INFO

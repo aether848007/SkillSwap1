@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -24,7 +25,13 @@ public class RatingController {
             Authentication auth,
             @Valid @RequestBody RatingCreateRequest req) {
         UUID raterId = (UUID) auth.getPrincipal();
-        return ResponseEntity.ok(ratingService.createRating(id, raterId, req));
+        try {
+            return ResponseEntity.ok(ratingService.createRating(id, raterId, req));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/api/users/{id}/ratings")

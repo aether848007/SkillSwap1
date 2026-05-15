@@ -20,9 +20,12 @@ public class RatingService {
     private final SkillProfileRepository profileRepo;
     private final UserRepository userRepo;
     private final NotificationService notifService;
+    private final ExchangeService exchangeService;
 
-    public RatingService(RatingRepository r, SessionRepository s, SkillProfileRepository p, UserRepository u, NotificationService n) {
-        this.ratingRepo = r; this.sessionRepo = s; this.profileRepo = p; this.userRepo = u; this.notifService = n;
+    public RatingService(RatingRepository r, SessionRepository s, SkillProfileRepository p, UserRepository u,
+                         NotificationService n, ExchangeService exchangeService) {
+        this.ratingRepo = r; this.sessionRepo = s; this.profileRepo = p; this.userRepo = u;
+        this.notifService = n; this.exchangeService = exchangeService;
     }
 
     @Transactional
@@ -41,7 +44,7 @@ public class RatingService {
         }
 
         if (ratingRepo.existsBySessionSessionIdAndRaterUserId(sessionId, raterId)) {
-            throw new RuntimeException("already rated this session");
+            throw new IllegalStateException("Already rated this session");
         }
 
         UUID rateeId = isLearner ? session.getProvider().getUserId() : session.getLearner().getUserId();
@@ -54,8 +57,13 @@ public class RatingService {
         rating.setComment(req.getComment());
         rating = ratingRepo.save(rating);
 
+        // First rating on a session flips it to RATED. The exchange completes once BOTH
+        // of its sessions are RATED — see ExchangeService.completeIfBothSessionsRated.
         session.setStatus(SessionStatus.RATED);
         sessionRepo.save(session);
+        if (session.getExchange() != null) {
+            exchangeService.completeIfBothSessionsRated(session.getExchange().getExchangeId());
+        }
 
         Double avg = ratingRepo.getAverageRatingForUser(rateeId);
         profileRepo.findByUserUserId(rateeId).ifPresent(p -> {

@@ -1,12 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Navbar from './components/Navbar'
-import BottomNav from './components/BottomNav'
 import LoginPage from './pages/LoginPage'
-import HomePage from './pages/HomePage'
 import SearchPage from './pages/SearchPage'
 import MatchesPage from './pages/MatchesPage'
 import SessionsPage from './pages/SessionsPage'
+import ExchangesPage from './pages/ExchangesPage'
+import ExchangePage from './pages/ExchangePage'
 import MessagesPage from './pages/MessagesPage'
 import ProfilePage from './pages/ProfilePage'
 import UserProfilePage from './pages/UserProfilePage'
@@ -33,9 +33,11 @@ export default function App() {
           <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
           <Route path="/auth/callback" element={<OAuthCallbackPage />} />
           <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-          <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-          <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+          <Route path="/" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+          <Route path="/search" element={<Navigate to="/" replace />} />
           <Route path="/matches" element={<ProtectedRoute><MatchesPage /></ProtectedRoute>} />
+          <Route path="/exchanges" element={<ProtectedRoute><ExchangesPage /></ProtectedRoute>} />
+          <Route path="/exchange/:id" element={<ProtectedRoute><ExchangePage /></ProtectedRoute>} />
           <Route path="/sessions" element={<ProtectedRoute><SessionsPage /></ProtectedRoute>} />
           <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
@@ -43,7 +45,6 @@ export default function App() {
           <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
         </Routes>
       </div>
-      {user && <BottomNav />}
     </div>
   )
 }

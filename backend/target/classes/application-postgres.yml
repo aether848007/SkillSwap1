@@ -1,5 +1,7 @@
 spring:
   datasource:
+    # Defaults assume a local Postgres at postgres/postgres123. Production overrides
+    # via DATABASE_* env vars from the compose .env file.
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/skillswap}
     driver-class-name: org.postgresql.Driver
     username: ${DATABASE_USERNAME:postgres}

@@ -43,8 +43,16 @@ public class AdminController {
     @PatchMapping("/users/{id}/ban")
     public ResponseEntity<?> banUser(@PathVariable UUID id) {
         User user = userRepo.findById(id).orElseThrow();
-        user.setRole(com.skillswap.model.enums.UserRole.LEARNER);
+        user.setDisabled(true);
         userRepo.save(user);
-        return ResponseEntity.ok(Map.of("message", "User role reset to LEARNER"));
+        return ResponseEntity.ok(Map.of("message", "User banned"));
+    }
+
+    @PatchMapping("/users/{id}/unban")
+    public ResponseEntity<?> unbanUser(@PathVariable UUID id) {
+        User user = userRepo.findById(id).orElseThrow();
+        user.setDisabled(false);
+        userRepo.save(user);
+        return ResponseEntity.ok(Map.of("message", "User reinstated"));
     }
 }

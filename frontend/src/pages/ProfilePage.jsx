@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import Toast from '../components/Toast';
+import StarRating from '../components/StarRating';
 
 const CATEGORIES = [
   'PROGRAMMING', 'DESIGN', 'LANGUAGE', 'MUSIC',
@@ -51,13 +52,14 @@ export default function ProfilePage() {
 
   const [profile, setProfile]     = useState(null);
   const [skills, setSkills]       = useState([]);
+  const [reviews, setReviews]     = useState([]);
   const [loading, setLoading]     = useState(true);
   const [editing, setEditing]     = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving]       = useState(false);
   const [toast, setToast]         = useState('');
 
-  const [editForm, setEditForm]   = useState({ displayName: '', bio: '', city: '', latitude: null, longitude: null });
+  const [editForm, setEditForm]   = useState({ displayName: '', bio: '', city: '' });
   const [skillForm, setSkillForm] = useState(DEFAULT_SKILL_FORM);
 
   const fileInputRef = useRef(null);
@@ -77,8 +79,14 @@ export default function ProfilePage() {
       ]);
       const p = profileRes.data;
       setProfile(p);
-      setEditForm({ displayName: p.displayName || '', bio: p.bio || '', city: p.city || '', latitude: p.latitude || null, longitude: p.longitude || null });
+      setEditForm({ displayName: p.displayName || '', bio: p.bio || '', city: p.city || '' });
       setSkills(skillsRes.data);
+      // Reviews are fetched separately — the endpoint needs the user id and is best-effort.
+      if (p?.userId) {
+        api.get(`/users/${p.userId}/reviews`)
+          .then(r => setReviews(Array.isArray(r.data) ? r.data : []))
+          .catch(() => {});
+      }
     } catch {
       showToast('Failed to load profile');
     } finally {
@@ -86,31 +94,11 @@ export default function ProfilePage() {
     }
   };
 
-  const geocodeCity = async (cityName) => {
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityName)}&format=json&limit=1`,
-        { headers: { 'Accept-Language': 'en' } }
-      );
-      const data = await res.json();
-      if (data.length > 0) return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
-    } catch {}
-    return null;
-  };
-
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      let form = { ...editForm };
-      if (form.city && (!form.latitude || !form.longitude)) {
-        const geo = await geocodeCity(form.city);
-        if (geo) {
-          form = { ...form, ...geo };
-          setEditForm(f => ({ ...f, ...geo }));
-        }
-      }
-      const res = await api.put('/users/me', form);
+      const res = await api.put('/users/me', editForm);
       setProfile(res.data);
       setEditing(false);
       showToast('Profile updated');
@@ -222,6 +210,43 @@ export default function ProfilePage() {
           </button>
         </div>
 
+        {/* Stats strip — rating, sessions, reviews */}
+        {!editing && (
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12,
+            marginTop: 20, padding: 16,
+            background: 'var(--canvas-soft)', borderRadius: 'var(--radius)',
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <StarRating score={profile?.averageRating || 0} size={16} />
+                <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)' }}>
+                  {profile?.averageRating ? profile.averageRating.toFixed(1) : '—'}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--mute)', fontWeight: 600, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                Average rating
+              </div>
+            </div>
+            <div style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1 }}>
+                {profile?.totalSessions || 0}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--mute)', fontWeight: 600, marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                Sessions
+              </div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', lineHeight: 1 }}>
+                {reviews.length}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--mute)', fontWeight: 600, marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                Review{reviews.length === 1 ? '' : 's'}
+              </div>
+            </div>
+          </div>
+        )}
+
         {profile?.bio && !editing && (
           <p style={{ marginTop: 16, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{profile.bio}</p>
         )}
@@ -254,13 +279,10 @@ export default function ProfilePage() {
               <input
                 type="text"
                 value={editForm.city}
-                onChange={(e) => setEditForm({ ...editForm, city: e.target.value, latitude: null, longitude: null })}
+                onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
                 placeholder="City, Country"
                 className="form-input"
               />
-              <div style={{ fontSize: '0.78rem', color: 'var(--mute)', marginTop: 4 }}>
-                Coordinates are set automatically when you save.
-              </div>
             </div>
             <button
               type="submit"
@@ -274,62 +296,138 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Skills card */}
-      <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>
-            My Skills
-            <span style={{ marginLeft: 8, fontSize: '0.88rem', fontWeight: 400, color: 'var(--text-secondary)' }}>({skills.length})</span>
-          </h2>
-          <button onClick={() => setShowModal(true)} className="btn btn-primary btn-sm">
-            + Add skill
-          </button>
-        </div>
+      {/* Skills — split into two distinct sections */}
+      {(() => {
+        const teachSkills = skills.filter(s => s.isOffered !== false)
+        const learnSkills = skills.filter(s => s.isOffered === false)
 
-        {skills.length === 0 ? (
-          <p style={{ fontSize: '0.9rem', textAlign: 'center', color: 'var(--text-secondary)', padding: '40px 0' }}>
-            No skills yet — add something you can teach!
-          </p>
-        ) : (
-          <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, listStyle: 'none' }}>
-            {skills.map((skill) => (
-              <li
-                key={skill.skillId}
-                style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: 12, background: 'var(--bg)', borderRadius: 'var(--radius-sm)' }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {skill.title}
-                    </span>
-                    <span className={LEVEL_CLASS[skill.proficiencyLevel] ?? 'badge'}>
-                      {toLabel(skill.proficiencyLevel)}
-                    </span>
-                    <span className="badge badge-category">
-                      {toLabel(skill.category)}
-                    </span>
-                    {skill.isOffered === false && (
-                      <span className="badge" style={{ background: '#fff7ed', color: '#c2410c' }}>Seeking</span>
-                    )}
+        const openAdd = (offered) => {
+          setSkillForm({ ...DEFAULT_SKILL_FORM, isOffered: offered })
+          setShowModal(true)
+        }
+
+        const SkillRow = ({ skill }) => (
+          <li style={{
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+            gap: 12, padding: '12px 14px', background: 'var(--canvas)',
+            borderRadius: 'var(--radius)', border: '1px solid var(--border)',
+          }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{skill.title}</span>
+                <span className={LEVEL_CLASS[skill.proficiencyLevel] ?? 'badge'}>{toLabel(skill.proficiencyLevel)}</span>
+                <span className="badge badge-category">{toLabel(skill.category)}</span>
+              </div>
+              {skill.description && (
+                <p style={{ fontSize: 13, color: 'var(--body)', lineHeight: 1.45 }}>{skill.description}</p>
+              )}
+            </div>
+            <button
+              onClick={() => handleDeleteSkill(skill.skillId)}
+              style={{ flexShrink: 0, color: 'var(--mute)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 4, transition: 'color 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--negative)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--mute)'}
+              title="Remove"
+            >
+              ✕
+            </button>
+          </li>
+        )
+
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
+            {/* I can teach — primary-pale tinted card */}
+            <section style={{
+              background: 'var(--primary-pale)',
+              border: '1px solid var(--primary-neutral)',
+              borderRadius: 'var(--radius-xl)',
+              padding: 24,
+              display: 'flex', flexDirection: 'column', gap: 16,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: 'var(--primary)', color: 'var(--on-primary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 18, fontWeight: 900, lineHeight: 1,
+                  }} aria-hidden>↗</span>
+                  <div>
+                    <h2 style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
+                      I can teach
+                    </h2>
+                    <div style={{ fontSize: 13, color: 'var(--body)', marginTop: 2 }}>
+                      {teachSkills.length} skill{teachSkills.length === 1 ? '' : 's'} you offer to others
+                    </div>
                   </div>
-                  {skill.description && (
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{skill.description}</p>
-                  )}
                 </div>
-                <button
-                  onClick={() => handleDeleteSkill(skill.skillId)}
-                  style={{ flexShrink: 0, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, marginTop: 2, transition: 'color 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-                  title="Remove skill"
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                <button onClick={() => openAdd(true)} className="btn btn-primary btn-sm">+ Add</button>
+              </div>
+
+              {teachSkills.length === 0 ? (
+                <div style={{
+                  textAlign: 'center', padding: '32px 16px',
+                  background: 'var(--canvas)', borderRadius: 'var(--radius)',
+                  border: '1px dashed var(--primary-neutral)',
+                  color: 'var(--body)', fontSize: 14,
+                }}>
+                  <div style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Nothing here yet</div>
+                  Add something you're confident teaching — that's how matches find you.
+                </div>
+              ) : (
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, listStyle: 'none' }}>
+                  {teachSkills.map(s => <SkillRow key={s.skillId} skill={s} />)}
+                </ul>
+              )}
+            </section>
+
+            {/* I want to learn — sage canvas-soft card with orange accent */}
+            <section style={{
+              background: 'var(--canvas-soft)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-xl)',
+              padding: 24,
+              display: 'flex', flexDirection: 'column', gap: 16,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: 'var(--accent-orange)', color: 'var(--ink)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 18, fontWeight: 900, lineHeight: 1,
+                  }} aria-hidden>↙</span>
+                  <div>
+                    <h2 style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
+                      I want to learn
+                    </h2>
+                    <div style={{ fontSize: 13, color: 'var(--body)', marginTop: 2 }}>
+                      {learnSkills.length} skill{learnSkills.length === 1 ? '' : 's'} you're looking for
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => openAdd(false)} className="btn btn-outline btn-sm">+ Add</button>
+              </div>
+
+              {learnSkills.length === 0 ? (
+                <div style={{
+                  textAlign: 'center', padding: '32px 16px',
+                  background: 'var(--canvas)', borderRadius: 'var(--radius)',
+                  border: '1px dashed var(--border)',
+                  color: 'var(--body)', fontSize: 14,
+                }}>
+                  <div style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Nothing here yet</div>
+                  Tell us what you want to learn — we'll match you with people who teach it.
+                </div>
+              ) : (
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, listStyle: 'none' }}>
+                  {learnSkills.map(s => <SkillRow key={s.skillId} skill={s} />)}
+                </ul>
+              )}
+            </section>
+          </div>
+        )
+      })()}
 
       {/* Add skill modal */}
       {showModal && (
@@ -338,11 +436,20 @@ export default function ProfilePage() {
           onClick={(e) => e.target === e.currentTarget && setShowModal(false)}
         >
           <div className="modal">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Add a skill</h3>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, gap: 12 }}>
+              <div>
+                <h3 style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.4px' }}>
+                  {skillForm.isOffered ? 'Add a skill you can teach' : 'Add a skill you want to learn'}
+                </h3>
+                <p style={{ fontSize: 14, color: 'var(--body)', marginTop: 4 }}>
+                  {skillForm.isOffered
+                    ? "We'll show this to people looking for someone with your skills."
+                    : "We'll find people who can teach you in exchange for your skills."}
+                </p>
+              </div>
               <button
                 onClick={() => setShowModal(false)}
-                style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }}
+                style={{ color: 'var(--mute)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4, flexShrink: 0 }}
               >
                 ✕
               </button>
@@ -402,15 +509,23 @@ export default function ProfilePage() {
                 />
               </div>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
-                <input
-                  type="checkbox"
-                  checked={skillForm.isOffered}
-                  onChange={(e) => setSkillForm({ ...skillForm, isOffered: e.target.checked })}
-                  style={{ width: 16, height: 16 }}
-                />
-                <span style={{ fontSize: '0.9rem', color: 'var(--text)' }}>I'm offering to teach this skill</span>
-              </label>
+              {/* isOffered is determined by which '+ Add' button the user clicked. */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 14px',
+                background: skillForm.isOffered ? 'var(--primary-pale)' : 'var(--canvas-soft)',
+                borderRadius: 'var(--radius)',
+                fontSize: 13, color: 'var(--ink)', fontWeight: 600,
+              }}>
+                <span style={{
+                  width: 20, height: 20, borderRadius: '50%',
+                  background: skillForm.isOffered ? 'var(--primary)' : 'var(--accent-orange)',
+                  color: 'var(--on-primary)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 900, lineHeight: 1,
+                }} aria-hidden>{skillForm.isOffered ? '↗' : '↙'}</span>
+                Adding to: {skillForm.isOffered ? "I can teach" : "I want to learn"}
+              </div>
 
               <div style={{ display: 'flex', gap: 12, paddingTop: 4 }}>
                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-outline" style={{ flex: 1 }}>
@@ -424,6 +539,79 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Reviews section */}
+      <section style={{
+        background: 'var(--canvas)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-xl)',
+        padding: 24,
+        display: 'flex', flexDirection: 'column', gap: 16,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
+              Reviews
+            </h2>
+            <div style={{ fontSize: 13, color: 'var(--body)', marginTop: 4 }}>
+              {reviews.length === 0
+                ? 'No reviews yet — complete a session and your partner can rate you.'
+                : `What ${reviews.length === 1 ? 'one person says' : `${reviews.length} people say`} about working with you`}
+            </div>
+          </div>
+          {reviews.length > 0 && profile?.averageRating != null && (
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--ink)', lineHeight: 1, letterSpacing: '-1px' }}>
+                {profile.averageRating.toFixed(1)}
+              </div>
+              <StarRating score={profile.averageRating} size={14} />
+            </div>
+          )}
+        </div>
+
+        {reviews.length === 0 ? null : (
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: 10, listStyle: 'none' }}>
+            {reviews.map(review => (
+              <li key={review.ratingId} style={{
+                background: 'var(--canvas-soft)',
+                borderRadius: 'var(--radius)',
+                padding: '14px 16px',
+                display: 'flex', flexDirection: 'column', gap: 6,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {review.rater?.avatarUrl ? (
+                      <img src={review.rater.avatarUrl} alt={review.rater.displayName}
+                        style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%',
+                        background: 'var(--primary)', color: 'var(--on-primary)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 700, fontSize: 13,
+                      }}>
+                        {(review.rater?.displayName || '?')[0].toUpperCase()}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+                      {review.rater?.displayName || 'User'}
+                    </div>
+                  </div>
+                  <StarRating score={review.score} size={14} />
+                </div>
+                {review.comment && (
+                  <p style={{ fontSize: 14, color: 'var(--body)', lineHeight: 1.45, marginTop: 2 }}>
+                    "{review.comment}"
+                  </p>
+                )}
+                <div style={{ fontSize: 12, color: 'var(--mute)', marginTop: 2 }}>
+                  {new Date(review.createdAt).toLocaleDateString()}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <Toast message={toast} onClose={() => setToast('')} />
     </div>

@@ -13,6 +13,8 @@ public class MatchResult {
     private double matchScore;
     private List<String> theyTeachMe;
     private List<String> iTeachThem;
+    private List<String> theirOfferedSkills;
+    private List<String> theirWantedSkills;
 
     public MatchResult() {}
 
@@ -34,4 +36,8 @@ public class MatchResult {
     public void setTheyTeachMe(List<String> theyTeachMe) { this.theyTeachMe = theyTeachMe; }
     public List<String> getITeachThem() { return iTeachThem; }
     public void setITeachThem(List<String> iTeachThem) { this.iTeachThem = iTeachThem; }
+    public List<String> getTheirOfferedSkills() { return theirOfferedSkills; }
+    public void setTheirOfferedSkills(List<String> s) { this.theirOfferedSkills = s; }
+    public List<String> getTheirWantedSkills() { return theirWantedSkills; }
+    public void setTheirWantedSkills(List<String> s) { this.theirWantedSkills = s; }
 }

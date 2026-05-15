@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import StarRating from '../components/StarRating'
+import ProposalModal from '../components/ProposalModal'
 
 const toLabel = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''
 
@@ -13,13 +14,11 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState(null)
   const [reviews, setReviews] = useState([])
   const [tab, setTab] = useState('skills')
-  const [showSession, setShowSession] = useState(false)
+  const [showPropose, setShowPropose] = useState(false)
   const [showMessage, setShowMessage] = useState(false)
-  const [sessionForm, setSessionForm] = useState({ skillId: '', scheduledAt: '', durationMinutes: 60, notes: '' })
   const [msgContent, setMsgContent] = useState('')
   const [loading, setLoading] = useState(true)
   const [success, setSuccess] = useState('')
-  const [sessionError, setSessionError] = useState('')
   const [messageError, setMessageError] = useState('')
 
   useEffect(() => {
@@ -42,25 +41,6 @@ export default function UserProfilePage() {
     } catch (e) { console.error(e) }
   }
 
-  const requestSession = async (e) => {
-    e.preventDefault()
-    setSessionError('')
-    try {
-      await api.post('/sessions', {
-        providerId: id,
-        skillId: sessionForm.skillId,
-        scheduledAt: sessionForm.scheduledAt,
-        durationMinutes: sessionForm.durationMinutes,
-        notes: sessionForm.notes
-      })
-      setShowSession(false)
-      setSuccess('Session request sent! They will receive a notification and can confirm from their Sessions tab.')
-      setTimeout(() => setSuccess(''), 6000)
-    } catch (e) {
-      setSessionError("Couldn't send your request — check your connection and try again.")
-    }
-  }
-
   const sendMessage = async (e) => {
     e.preventDefault()
     setMessageError('')
@@ -81,13 +61,6 @@ export default function UserProfilePage() {
   const offeredSkills = (profile.skills || []).filter(s => s.isOffered)
   const soughtSkills = (profile.skills || []).filter(s => !s.isOffered)
   const isOwnProfile = user?.userId === id
-
-  const getDefaultTime = () => {
-    const d = new Date()
-    d.setDate(d.getDate() + 1)
-    d.setHours(15, 0, 0, 0)
-    return d.toISOString().slice(0, 16)
-  }
 
   return (
     <div className="container" style={{ paddingTop: 24 }}>
@@ -139,8 +112,8 @@ export default function UserProfilePage() {
         </div>
         {!isOwnProfile && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <button className="btn btn-primary" onClick={() => { setShowSession(true); setSessionForm({ ...sessionForm, scheduledAt: getDefaultTime() }) }}>
-              Request Session
+            <button className="btn btn-primary" onClick={() => setShowPropose(true)}>
+              Propose Exchange
             </button>
             <button className="btn btn-outline" onClick={() => setShowMessage(true)}>
               Message
@@ -213,49 +186,13 @@ export default function UserProfilePage() {
         </div>
       )}
 
-      {/* Session Request Modal */}
-      {showSession && (
-        <div className="modal-overlay" onClick={() => { setShowSession(false); setSessionError('') }}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Request a Session with {profile.displayName}</h2>
-            <form onSubmit={requestSession}>
-              <div className="form-group">
-                <label className="form-label">Select a Skill</label>
-                <select className="form-select" required value={sessionForm.skillId}
-                  onChange={e => setSessionForm({ ...sessionForm, skillId: e.target.value })}>
-                  <option value="">Choose a skill to learn…</option>
-                  {offeredSkills.map(s => <option key={s.skillId} value={s.skillId}>{s.title}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Date & Time</label>
-                <input className="form-input" type="datetime-local" required value={sessionForm.scheduledAt}
-                  onChange={e => setSessionForm({ ...sessionForm, scheduledAt: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Duration</label>
-                <select className="form-select" value={sessionForm.durationMinutes}
-                  onChange={e => setSessionForm({ ...sessionForm, durationMinutes: parseInt(e.target.value) })}>
-                  <option value="30">30 minutes</option>
-                  <option value="45">45 minutes</option>
-                  <option value="60">60 minutes</option>
-                  <option value="90">90 minutes</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">What do you want to learn?</label>
-                <textarea className="form-textarea" value={sessionForm.notes}
-                  onChange={e => setSessionForm({ ...sessionForm, notes: e.target.value })}
-                  placeholder="Describe what you'd like to focus on…" />
-              </div>
-              {sessionError && <div className="error-msg">{sessionError}</div>}
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-ghost" onClick={() => { setShowSession(false); setSessionError('') }}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Send Request</button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Propose Exchange */}
+      {showPropose && profile && (
+        <ProposalModal
+          targetUserId={id}
+          targetUserName={profile.displayName}
+          onClose={() => setShowPropose(false)}
+        />
       )}
 
       {/* Message Modal */}

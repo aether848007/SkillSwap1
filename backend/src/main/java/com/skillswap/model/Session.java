@@ -1,5 +1,6 @@
 package com.skillswap.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.skillswap.model.enums.SessionStatus;
 import jakarta.persistence.*;
@@ -26,11 +27,17 @@ public class Session {
     @JoinColumn(name = "skill_id", nullable = false)
     private Skill skill;
 
+    /** The parent Exchange. Sessions are only ever created as one of an Exchange's two slots. */
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "exchange_id")
+    private Exchange exchange;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SessionStatus status = SessionStatus.REQUESTED;
+    private SessionStatus status = SessionStatus.DRAFT;
 
-    @Column(nullable = false)
+    /** Null while the session is a DRAFT slot — set when the learner proposes a time. */
     private LocalDateTime scheduledAt;
 
     private Integer durationMinutes = 60;
@@ -53,6 +60,8 @@ public class Session {
     public void setProvider(User p) { this.provider = p; }
     public Skill getSkill() { return skill; }
     public void setSkill(Skill s) { this.skill = s; }
+    public Exchange getExchange() { return exchange; }
+    public void setExchange(Exchange e) { this.exchange = e; }
     public SessionStatus getStatus() { return status; }
     public void setStatus(SessionStatus s) { this.status = s; }
     public LocalDateTime getScheduledAt() { return scheduledAt; }

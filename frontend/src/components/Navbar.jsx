@@ -66,10 +66,9 @@ export default function Navbar() {
         SkillSwap
       </Link>
       <div className="navbar-links">
-        <Link to="/" className={isActive('/')}>Home</Link>
+        <Link to="/" className={isActive('/')}>Discover</Link>
         <Link to="/matches" className={isActive('/matches')}>Matches</Link>
-        <Link to="/search" className={isActive('/search')}>Discover</Link>
-        <Link to="/sessions" className={isActive('/sessions')}>Sessions</Link>
+        <Link to="/exchanges" className={isActive('/exchanges')}>Exchanges</Link>
         <Link to="/messages" className={isActive('/messages')}>Messages</Link>
         {isAdmin && <Link to="/admin" className={isActive('/admin')} style={{ color: 'var(--positive-deep)' }}>Admin</Link>}
       </div>

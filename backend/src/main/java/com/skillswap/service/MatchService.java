@@ -45,9 +45,6 @@ public class MatchService {
         log.info("findMatches: found {} candidate profiles", candidates.size());
         List<MatchResult> results = new ArrayList<>();
 
-        Double myLat = myProfile.getUser().getLatitude();
-        Double myLng = myProfile.getUser().getLongitude();
-
         for (SkillProfile candidate : candidates) {
             List<Skill> theirOffered = activeSkills(candidate, true);
             List<Skill> theirWanted  = activeSkills(candidate, false);
@@ -84,15 +81,6 @@ public class MatchService {
             log.info("findMatches: candidate={} rawScore={} iTeach={} theyTeach={}", candidate.getUser().getDisplayName(), score, iTeachThem, theyTeachMe);
             if (score < 10) continue;
 
-            // Proximity bonus
-            Double theirLat = candidate.getUser().getLatitude();
-            Double theirLng = candidate.getUser().getLongitude();
-            if (myLat != null && myLng != null && theirLat != null && theirLng != null) {
-                double km = haversineKm(myLat, myLng, theirLat, theirLng);
-                if (km <= 25) score += 10;
-                else if (km <= 100) score += 5;
-            }
-
             double normalizedScore = Math.min(100.0, score);
 
             MatchResult r = new MatchResult();
@@ -105,6 +93,8 @@ public class MatchService {
             r.setMatchScore(Math.round(normalizedScore * 10.0) / 10.0);
             r.setTheyTeachMe(theyTeachMe);
             r.setITeachThem(iTeachThem);
+            r.setTheirOfferedSkills(theirOffered.stream().map(Skill::getTitle).collect(Collectors.toList()));
+            r.setTheirWantedSkills(theirWanted.stream().map(Skill::getTitle).collect(Collectors.toList()));
             results.add(r);
         }
 
@@ -131,13 +121,4 @@ public class MatchService {
         return 5;
     }
 
-    private double haversineKm(double lat1, double lon1, double lat2, double lon2) {
-        final double R = 6371.0;
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
 }

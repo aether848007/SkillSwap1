@@ -22,7 +22,10 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-        if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
+        if (accessor == null) return message;
+
+        StompCommand cmd = accessor.getCommand();
+        if (StompCommand.CONNECT.equals(cmd)) {
             String auth = accessor.getFirstNativeHeader("Authorization");
             if (auth != null && auth.startsWith("Bearer ")) {
                 String token = auth.substring(7);
@@ -31,6 +34,12 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                     accessor.setUser(new UsernamePasswordAuthenticationToken(
                             userId, null, Collections.emptyList()));
                 }
+            }
+        } else if (StompCommand.SEND.equals(cmd) || StompCommand.SUBSCRIBE.equals(cmd)) {
+            // Refuse SEND/SUBSCRIBE frames with no attached principal — protects against
+            // anonymous CONNECTs continuing to push/subscribe.
+            if (accessor.getUser() == null) {
+                throw new SecurityException("Unauthenticated STOMP frame: " + cmd);
             }
         }
         return message;

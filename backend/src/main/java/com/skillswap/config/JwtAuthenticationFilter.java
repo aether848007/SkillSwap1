@@ -1,10 +1,12 @@
 package com.skillswap.config;
 
+import com.skillswap.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,9 +19,11 @@ import java.util.UUID;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
+    private final ObjectProvider<UserRepository> userRepoProvider;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, ObjectProvider<UserRepository> userRepoProvider) {
         this.jwtUtil = jwtUtil;
+        this.userRepoProvider = userRepoProvider;
     }
 
     @Override
@@ -32,6 +36,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Claims claims = jwtUtil.extractClaims(token);
                 UUID userId = UUID.fromString(claims.getSubject());
                 String role = claims.get("role", String.class);
+
+                UserRepository userRepo = userRepoProvider.getIfAvailable();
+                if (userRepo != null) {
+                    var userOpt = userRepo.findById(userId);
+                    if (userOpt.isPresent() && userOpt.get().isDisabled()) {
+                        response.setContentType("application/json");
+                        response.setStatus(403);
+                        response.getWriter().write("{\"error\":\"Account disabled\"}");
+                        return;
+                    }
+                }
+
                 var auth = new UsernamePasswordAuthenticationToken(
                     userId, null, List.of(new SimpleGrantedAuthority("ROLE_" + role))
                 );

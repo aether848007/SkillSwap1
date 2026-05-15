@@ -27,90 +27,81 @@ function Avatar({ user, size = 44 }) {
   )
 }
 
-function ScoreBadge({ score }) {
-  const color = score >= 80 ? 'var(--positive-deep)' : score >= 50 ? '#b45309' : 'var(--mute)'
-  const bg = score >= 80 ? 'var(--primary-pale)' : score >= 50 ? '#fef3c7' : 'var(--bg)'
+function SkillChip({ label, highlight = false }) {
   return (
     <span style={{
-      background: bg, color, borderRadius: 20,
-      fontSize: '0.75rem', fontWeight: 700, padding: '3px 10px',
-    }}>
-      {score}% match
-    </span>
-  )
-}
-
-function SkillChip({ label, variant = 'offer' }) {
-  return (
-    <span style={{
-      background: variant === 'offer' ? 'var(--primary-pale)' : 'var(--bg)',
-      color: variant === 'offer' ? 'var(--positive-deep)' : 'var(--text-secondary)',
-      border: variant === 'offer' ? 'none' : '1px solid var(--border)',
-      borderRadius: 20, fontSize: '0.78rem', fontWeight: 500, padding: '2px 9px',
+      background: highlight ? 'var(--primary-pale)' : 'var(--canvas-soft)',
+      color: highlight ? 'var(--positive-deep)' : 'var(--body)',
+      border: highlight ? '1px solid rgba(16,185,129,0.35)' : '1px solid var(--border)',
+      borderRadius: 20, fontSize: '0.78rem', fontWeight: highlight ? 600 : 400, padding: '2px 10px',
     }}>
       {label}
     </span>
   )
 }
 
+function SkillSection({ label, skills, highlighted }) {
+  if (!skills?.length) return null
+  return (
+    <div>
+      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
+        {label}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+        {skills.map(s => <SkillChip key={s} label={s} highlight={highlighted?.includes(s)} />)}
+      </div>
+    </div>
+  )
+}
+
 function MatchCard({ match, onPropose }) {
   const navigate = useNavigate()
+  const isMutual = match.theyTeachMe?.length > 0 && match.iTeachThem?.length > 0
+
   return (
     <div style={{
       background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)',
-      padding: '20px', display: 'flex', flexDirection: 'column', gap: 14,
+      padding: '20px', display: 'flex', flexDirection: 'column', gap: 16,
     }}>
-      {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <Avatar user={match} size={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>{match.displayName}</div>
-          {match.city && <div style={{ fontSize: '0.8rem', color: 'var(--mute)' }}>{match.city}</div>}
+          {match.city && <div style={{ fontSize: '0.8rem', color: 'var(--mute)', marginTop: 1 }}>{match.city}</div>}
         </div>
-        <ScoreBadge score={match.matchScore} />
+        {isMutual && (
+          <span style={{
+            background: 'var(--primary-pale)', color: 'var(--positive-deep)',
+            border: '1px solid rgba(16,185,129,0.4)',
+            borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, padding: '3px 10px',
+            whiteSpace: 'nowrap',
+          }}>
+            ✓ Mutual match
+          </span>
+        )}
       </div>
 
-      {/* They teach me */}
-      {match.theyTeachMe?.length > 0 && (
-        <div>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-            They can teach you
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {match.theyTeachMe.map(s => <SkillChip key={s} label={s} variant="offer" />)}
-          </div>
-        </div>
-      )}
+      <SkillSection
+        label="Can teach you"
+        skills={match.theirOfferedSkills}
+        highlighted={match.theyTeachMe}
+      />
+      <SkillSection
+        label="Wants to learn"
+        skills={match.theirWantedSkills}
+        highlighted={match.iTeachThem}
+      />
 
-      {/* I teach them */}
-      {match.iTeachThem?.length > 0 && (
-        <div>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-            You can teach them
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {match.iTeachThem.map(s => <SkillChip key={s} label={s} variant="want" />)}
-          </div>
-        </div>
-      )}
-
-      {/* Stats + actions */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
         <span style={{ fontSize: '0.78rem', color: 'var(--mute)' }}>
           {match.averageRating > 0 ? `★ ${match.averageRating.toFixed(1)}` : 'New'}{' '}
           · {match.totalSessions} session{match.totalSessions !== 1 ? 's' : ''}
         </span>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className="btn btn-sm btn-outline"
-            onClick={() => navigate(`/user/${match.userId}`)}
-          >
+          <button className="btn btn-sm btn-outline" onClick={() => navigate(`/user/${match.userId}`)}>
             View profile
           </button>
-          <button
-            className="btn btn-sm btn-primary"
-            onClick={() => onPropose(match)}
-          >
+          <button className="btn btn-sm btn-primary" onClick={() => onPropose(match)}>
             Propose exchange
           </button>
         </div>
@@ -119,32 +110,24 @@ function MatchCard({ match, onPropose }) {
   )
 }
 
-function parseSkills(s) {
-  if (!s) return []
-  if (Array.isArray(s)) return s
-  return String(s).split(',').map(x => x.trim()).filter(Boolean)
-}
-
 function IncomingProposalCard({ proposal, onAccept, onDecline, busy }) {
   const navigate = useNavigate()
-  // Backend stores fields from sender's POV, so for the receiver they invert:
-  // proposal.iTeachThem  = what the sender offers to teach (sender→receiver)
-  // proposal.theyTeachMe = what the sender wants to learn (receiver→sender)
-  const theyTeachYou = parseSkills(proposal.iTeachThem)
-  const youTeachThem = parseSkills(proposal.theyTeachMe)
+  // A received proposal: the sender offers `offeredSkill` (they teach you) and
+  // wants `requestedSkill` (you teach them).
+  const theyTeachYou = proposal.offeredSkill?.title
+  const youTeachThem = proposal.requestedSkill?.title
   return (
     <div style={{
-      background: 'var(--bg-card)', border: '2px solid var(--primary)', borderRadius: 'var(--radius-lg)',
-      padding: '20px', display: 'flex', flexDirection: 'column', gap: 12,
-      boxShadow: '0 4px 0 var(--primary-shadow)',
+      background: 'var(--canvas)', border: '1px solid var(--ink)', borderRadius: 'var(--radius-xl)',
+      padding: 24, display: 'flex', flexDirection: 'column', gap: 14,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <Avatar user={proposal.otherUser} size={48} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 900, fontSize: '0.98rem', color: 'var(--text)' }}>
+          <div style={{ fontWeight: 600, fontSize: '0.98rem', color: 'var(--text)' }}>
             {proposal.otherUser?.displayName} wants to swap
           </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--mute)', fontWeight: 700 }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--mute)', fontWeight: 500 }}>
             {new Date(proposal.createdAt).toLocaleString()}
           </div>
         </div>
@@ -152,57 +135,44 @@ function IncomingProposalCard({ proposal, onAccept, onDecline, busy }) {
 
       {proposal.message && (
         <div style={{
-          background: 'var(--surface-1)', borderRadius: 'var(--radius-sm)',
-          padding: '10px 14px', fontSize: '0.88rem', color: 'var(--text)',
-          fontWeight: 600, lineHeight: 1.5, fontStyle: 'italic',
+          background: 'var(--canvas-soft)', borderRadius: 'var(--radius)',
+          padding: '12px 16px', fontSize: 14, color: 'var(--ink)', lineHeight: 1.5,
         }}>
           "{proposal.message}"
         </div>
       )}
 
-      {theyTeachYou.length > 0 && (
+      {theyTeachYou && (
         <div>
-          <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 6 }}>
+          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
             They can teach you
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {theyTeachYou.map(s => <SkillChip key={s} label={s} variant="offer" />)}
+            <SkillChip label={theyTeachYou} variant="offer" />
           </div>
         </div>
       )}
 
-      {youTeachThem.length > 0 && (
+      {youTeachThem && (
         <div>
-          <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 6 }}>
+          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
             You can teach them
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {youTeachThem.map(s => <SkillChip key={s} label={s} variant="want" />)}
+            <SkillChip label={youTeachThem} variant="want" />
           </div>
         </div>
       )}
 
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-        <button
-          className="btn btn-sm btn-outline"
-          onClick={() => navigate(`/user/${proposal.otherUser?.userId}`)}
-          disabled={busy}
-        >
+        <button className="btn btn-sm btn-outline" onClick={() => navigate(`/user/${proposal.otherUser?.userId}`)} disabled={busy}>
           View profile
         </button>
         <div style={{ flex: 1 }} />
-        <button
-          className="btn btn-sm btn-ghost"
-          onClick={() => onDecline(proposal.matchRequestId)}
-          disabled={busy}
-        >
+        <button className="btn btn-sm btn-ghost" onClick={() => onDecline(proposal.proposalId)} disabled={busy}>
           Decline
         </button>
-        <button
-          className="btn btn-sm btn-primary"
-          onClick={() => onAccept(proposal.matchRequestId)}
-          disabled={busy}
-        >
+        <button className="btn btn-sm btn-primary" onClick={() => onAccept(proposal.proposalId)} disabled={busy}>
           Accept
         </button>
       </div>
@@ -212,6 +182,7 @@ function IncomingProposalCard({ proposal, onAccept, onDecline, busy }) {
 
 export default function MatchesPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [matches, setMatches] = useState([])
   const [incoming, setIncoming] = useState([])
   const [loading, setLoading] = useState(true)
@@ -219,15 +190,13 @@ export default function MatchesPage() {
   const [proposing, setProposing] = useState(null)
   const [actionBusy, setActionBusy] = useState(null)
   const [toast, setToast] = useState('')
+  const [cityOnly, setCityOnly] = useState(false)
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2800) }
 
   const loadIncoming = () => {
-    api.get('/match-requests')
-      .then(r => {
-        const recvPending = (r.data || []).filter(p => p.direction === 'received' && p.status === 'PENDING')
-        setIncoming(recvPending)
-      })
+    api.get('/proposals')
+      .then(r => setIncoming((r.data || []).filter(p => p.direction === 'received' && p.status === 'PENDING')))
       .catch(() => {})
   }
 
@@ -237,9 +206,8 @@ export default function MatchesPage() {
         console.error('Failed to load matches:', e)
         setError(e.response?.data?.error || 'Failed to load matches')
       }),
-      api.get('/match-requests').then(r => {
-        const recvPending = (r.data || []).filter(p => p.direction === 'received' && p.status === 'PENDING')
-        setIncoming(recvPending)
+      api.get('/proposals').then(r => {
+        setIncoming((r.data || []).filter(p => p.direction === 'received' && p.status === 'PENDING'))
       }).catch(() => {}),
     ]).finally(() => setLoading(false))
   }, [])
@@ -247,9 +215,12 @@ export default function MatchesPage() {
   const handleAccept = async (id) => {
     setActionBusy(id)
     try {
-      await api.patch(`/match-requests/${id}/accept`)
-      setIncoming(prev => prev.filter(p => p.matchRequestId !== id))
-      showToast('Accepted! Start a conversation in Messages.')
+      const res = await api.patch(`/proposals/${id}/accept`)
+      setIncoming(prev => prev.filter(p => p.proposalId !== id))
+      showToast('Accepted! Opening your exchange…')
+      if (res.data?.exchangeId) {
+        setTimeout(() => navigate(`/exchange/${res.data.exchangeId}`), 700)
+      }
     } catch (e) {
       showToast(e.response?.data?.error || 'Failed to accept')
     } finally {
@@ -260,8 +231,8 @@ export default function MatchesPage() {
   const handleDecline = async (id) => {
     setActionBusy(id)
     try {
-      await api.patch(`/match-requests/${id}/decline`)
-      setIncoming(prev => prev.filter(p => p.matchRequestId !== id))
+      await api.patch(`/proposals/${id}/decline`)
+      setIncoming(prev => prev.filter(p => p.proposalId !== id))
       showToast('Declined.')
     } catch (e) {
       showToast(e.response?.data?.error || 'Failed to decline')
@@ -274,23 +245,42 @@ export default function MatchesPage() {
   const hasOffered = mySkills.some(s => s.isOffered)
   const hasWanted  = mySkills.some(s => !s.isOffered)
 
+  const visibleMatches = cityOnly && user?.city
+    ? matches.filter(m => m.city && m.city.toLowerCase() === user.city.toLowerCase())
+    : matches
+
   return (
     <div className="container" style={{ paddingTop: 24, paddingBottom: 48, maxWidth: 760 }}>
-      <div className="page-header" style={{ marginBottom: 28 }}>
-        <h1>Your matches</h1>
-        <p>People you can trade skills with — ranked by compatibility</p>
+      <div className="page-header" style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h1>Your matches</h1>
+          <p>People you can trade skills with — ranked by compatibility</p>
+        </div>
+        {user?.city && (
+          <button
+            type="button"
+            className={`btn btn-sm ${cityOnly ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setCityOnly(v => !v)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginTop: 4 }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            {user.city} only
+          </button>
+        )}
       </div>
 
       {!loading && incoming.length > 0 && (
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px' }}>
               Incoming proposals
             </h2>
             <span style={{
-              background: 'var(--primary)', color: 'white', borderRadius: 9999,
-              fontSize: '0.7rem', fontWeight: 900, padding: '3px 10px',
-              boxShadow: '0 2px 0 var(--primary-shadow)',
+              background: 'var(--primary-pale)', color: 'var(--positive-deep)', borderRadius: 9999,
+              fontSize: '0.75rem', fontWeight: 600, padding: '3px 10px',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
             }}>
               {incoming.length}
             </span>
@@ -298,11 +288,11 @@ export default function MatchesPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
             {incoming.map(p => (
               <IncomingProposalCard
-                key={p.matchRequestId}
+                key={p.proposalId}
                 proposal={p}
                 onAccept={handleAccept}
                 onDecline={handleDecline}
-                busy={actionBusy === p.matchRequestId}
+                busy={actionBusy === p.proposalId}
               />
             ))}
           </div>
@@ -344,19 +334,29 @@ export default function MatchesPage() {
       ) : (
         <>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-            <span style={{ fontWeight: 600, color: 'var(--text)' }}>{matches.length}</span> compatible match{matches.length !== 1 ? 'es' : ''} found
+            <span style={{ fontWeight: 600, color: 'var(--text)' }}>{visibleMatches.length}</span> compatible match{visibleMatches.length !== 1 ? 'es' : ''} found
+            {cityOnly && <span style={{ color: 'var(--mute)' }}> in {user?.city}</span>}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
-            {matches.map(m => (
-              <MatchCard key={m.userId} match={m} onPropose={setProposing} />
-            ))}
-          </div>
+          {visibleMatches.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--mute)', fontSize: '0.9rem' }}>
+              No matches in {user?.city} yet.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
+              {visibleMatches.map(m => (
+                <MatchCard key={m.userId} match={m} onPropose={setProposing} />
+              ))}
+            </div>
+          )}
         </>
       )}
 
       {proposing && (
         <ProposalModal
-          match={proposing}
+          targetUserId={proposing.userId}
+          targetUserName={proposing.displayName}
+          suggestedTeachTitle={proposing.iTeachThem?.[0]}
+          suggestedLearnTitle={proposing.theyTeachMe?.[0]}
           onClose={() => { setProposing(null); loadIncoming() }}
         />
       )}

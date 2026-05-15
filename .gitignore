@@ -3,6 +3,11 @@
 *.env.local
 .env.production
 
+# Local launchers — may contain real secrets
+run-local.ps1
+backend/run-local.ps1
+frontend/run-local.ps1
+
 # Java / Maven
 backend/target/
 *.jar

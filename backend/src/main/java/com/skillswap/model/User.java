@@ -44,6 +44,12 @@ public class User {
 
     private Double longitude;
 
+    @Column(nullable = false)
+    private boolean disabled = false;
+
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -77,6 +83,10 @@ public class User {
     public void setLatitude(Double latitude) { this.latitude = latitude; }
     public Double getLongitude() { return longitude; }
     public void setLongitude(Double longitude) { this.longitude = longitude; }
+    public boolean isDisabled() { return disabled; }
+    public void setDisabled(boolean disabled) { this.disabled = disabled; }
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public SkillProfile getSkillProfile() { return skillProfile; }
     public void setSkillProfile(SkillProfile skillProfile) { this.skillProfile = skillProfile; }

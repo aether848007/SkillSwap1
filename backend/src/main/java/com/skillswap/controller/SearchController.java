@@ -31,13 +31,4 @@ public class SearchController {
     public ResponseEntity<List<SkillDto>> byCity(@RequestParam String city) {
         return ResponseEntity.ok(searchService.searchByCity(city));
     }
-
-    @GetMapping("/nearby")
-    public ResponseEntity<List<SkillDto>> nearby(
-            @RequestParam double lat,
-            @RequestParam double lng,
-            @RequestParam(defaultValue = "25") double radiusKm,
-            @RequestParam(required = false) String query) {
-        return ResponseEntity.ok(searchService.searchNearby(lat, lng, radiusKm, query));
-    }
 }

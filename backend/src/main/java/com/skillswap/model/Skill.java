@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.skillswap.model.enums.ProficiencyLevel;
 import com.skillswap.model.enums.SkillCategory;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -32,10 +33,16 @@ public class Skill {
     private Boolean isOffered = true;
     private Boolean isActive = true;
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profile_id", nullable = false)
     private SkillProfile skillProfile;
+
+    @PrePersist
+    void onCreate() { if (createdAt == null) createdAt = LocalDateTime.now(); }
 
     public Skill() {}
     public UUID getSkillId() { return skillId; }
@@ -54,4 +61,5 @@ public class Skill {
     public void setIsActive(Boolean a) { this.isActive = a; }
     public SkillProfile getSkillProfile() { return skillProfile; }
     public void setSkillProfile(SkillProfile sp) { this.skillProfile = sp; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -46,8 +46,6 @@ public class UserController {
         if (req.getBio() != null) user.setBio(req.getBio());
         if (req.getCity() != null) user.setCity(req.getCity());
         if (req.getAvatarUrl() != null) user.setAvatarUrl(req.getAvatarUrl());
-        if (req.getLatitude() != null) user.setLatitude(req.getLatitude());
-        if (req.getLongitude() != null) user.setLongitude(req.getLongitude());
         user = userRepo.save(user);
         return ResponseEntity.ok(buildUserMap(user));
     }
@@ -63,10 +61,18 @@ public class UserController {
         return ResponseEntity.ok(ratingRepo.findByRateeUserIdOrderByCreatedAtDesc(id));
     }
 
+    private static final Set<String> ALLOWED_AVATAR_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
+
     @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadAvatar(Authentication auth, @RequestParam("file") MultipartFile file) throws IOException {
         UUID userId = (UUID) auth.getPrincipal();
-        String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Empty file"));
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_AVATAR_TYPES.contains(contentType.toLowerCase())) {
+            return ResponseEntity.status(415).body(Map.of("error", "Unsupported image type. Use JPEG, PNG, or WebP."));
+        }
         String base64 = Base64.getEncoder().encodeToString(file.getBytes());
         String dataUrl = "data:" + contentType + ";base64," + base64;
         User user = userRepo.findById(userId).orElseThrow();
@@ -96,8 +102,6 @@ public class UserController {
         map.put("bio", user.getBio());
         map.put("role", user.getRole());
         map.put("city", user.getCity());
-        map.put("latitude", user.getLatitude());
-        map.put("longitude", user.getLongitude());
         map.put("createdAt", user.getCreatedAt());
         SkillProfile profile = profileRepo.findByUserUserId(user.getUserId()).orElse(null);
         if (profile != null) {
