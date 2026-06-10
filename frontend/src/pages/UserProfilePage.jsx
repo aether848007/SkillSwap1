@@ -20,6 +20,7 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true)
   const [success, setSuccess] = useState('')
   const [messageError, setMessageError] = useState('')
+  const [blockBusy, setBlockBusy] = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -39,6 +40,25 @@ export default function UserProfilePage() {
       const res = await api.get(`/users/${id}/reviews`)
       setReviews(res.data)
     } catch (e) { console.error(e) }
+  }
+
+  const toggleBlock = async () => {
+    setBlockBusy(true)
+    try {
+      if (profile.isBlocked) {
+        await api.delete(`/users/${id}/block`)
+        setProfile(p => ({ ...p, isBlocked: false }))
+        setSuccess(`${profile.displayName} unblocked.`)
+      } else {
+        await api.post(`/users/${id}/block`)
+        setProfile(p => ({ ...p, isBlocked: true }))
+        setSuccess(`${profile.displayName} blocked. They can no longer message you or appear in your matches.`)
+      }
+      setTimeout(() => setSuccess(''), 5000)
+    } catch (e) {
+      setMessageError('Could not update block status. Try again.')
+    }
+    setBlockBusy(false)
   }
 
   const sendMessage = async (e) => {
@@ -112,11 +132,23 @@ export default function UserProfilePage() {
         </div>
         {!isOwnProfile && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <button className="btn btn-primary" onClick={() => setShowPropose(true)}>
-              Propose Exchange
-            </button>
-            <button className="btn btn-outline" onClick={() => setShowMessage(true)}>
-              Message
+            {profile.isBlocked ? (
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: 180, textAlign: 'center' }}>
+                You blocked this user.
+              </div>
+            ) : (
+              <>
+                <button className="btn btn-primary" onClick={() => setShowPropose(true)}>
+                  Propose Exchange
+                </button>
+                <button className="btn btn-outline" onClick={() => setShowMessage(true)}>
+                  Message
+                </button>
+              </>
+            )}
+            <button className="btn btn-ghost" onClick={toggleBlock} disabled={blockBusy}
+              style={{ color: profile.isBlocked ? 'var(--primary)' : '#a7000d', fontSize: '0.85rem' }}>
+              {blockBusy ? '…' : profile.isBlocked ? 'Unblock' : 'Block user'}
             </button>
           </div>
         )}

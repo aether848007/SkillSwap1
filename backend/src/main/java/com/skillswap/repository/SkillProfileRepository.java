@@ -11,6 +11,7 @@ public interface SkillProfileRepository extends JpaRepository<SkillProfile, UUID
     @Query("SELECT sp FROM SkillProfile sp JOIN FETCH sp.user LEFT JOIN FETCH sp.skills WHERE sp.user.userId = :userId")
     Optional<SkillProfile> findByUserUserId(@Param("userId") UUID userId);
 
-    @Query("SELECT sp FROM SkillProfile sp JOIN FETCH sp.user WHERE sp.user.userId != :userId")
+    @Query("SELECT sp FROM SkillProfile sp JOIN FETCH sp.user u " +
+           "WHERE u.userId != :userId AND sp.isVisible = true AND u.disabled = false")
     java.util.List<SkillProfile> findAllOtherUsersWithSkills(@Param("userId") UUID userId);
 }

@@ -28,8 +28,9 @@ public class MessageController {
     }
 
     @GetMapping("/conversation/{convId}")
-    public ResponseEntity<List<Message>> getConversation(@PathVariable UUID convId) {
-        return ResponseEntity.ok(msgService.getConversation(convId));
+    public ResponseEntity<List<Message>> getConversation(Authentication auth, @PathVariable UUID convId) {
+        UUID userId = (UUID) auth.getPrincipal();
+        return ResponseEntity.ok(msgService.getConversation(convId, userId));
     }
 
     @PatchMapping("/conversation/{convId}/read")

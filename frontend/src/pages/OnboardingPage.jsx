@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
+import { detectCategory } from '../utils/detectCategory'
 
 const CATEGORIES = ['PROGRAMMING', 'DESIGN', 'LANGUAGE', 'MUSIC', 'BUSINESS', 'COOKING', 'PHOTOGRAPHY', 'FITNESS', 'OTHER']
 const LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
@@ -19,11 +20,22 @@ export default function OnboardingPage() {
 
   const skip = () => {
     localStorage.setItem('onboardingSkipped', '1')
+    updateUser({ needsOnboarding: false })
     navigate('/')
   }
 
   const updateSkill = (list, setList, idx, field, value) => {
-    setList(list.map((s, i) => i === idx ? { ...s, [field]: value } : s))
+    setList(list.map((s, i) => {
+      if (i !== idx) return s
+      const next = { ...s, [field]: value }
+      // Auto-detect category from the title unless the user has manually chosen one.
+      if (field === 'title' && !s.categoryTouched) {
+        const detected = detectCategory(value)
+        if (detected) next.category = detected
+      }
+      if (field === 'category') next.categoryTouched = true
+      return next
+    }))
   }
 
   const addSkill = (list, setList) => {
@@ -44,7 +56,7 @@ export default function OnboardingPage() {
       const toSave = [...valid(offeredSkills, true), ...valid(wantedSkills, false)]
       await Promise.all(toSave.map(s => api.post('/users/skills', s)))
       const meRes = await api.get('/users/me')
-      updateUser(meRes.data)
+      updateUser({ ...meRes.data, needsOnboarding: false })
       localStorage.setItem('onboardingSkipped', '1')
       navigate('/matches')
     } catch {

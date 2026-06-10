@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import api from '../api/axios'
 import SkillCard from '../components/SkillCard'
 import { useAuth } from '../context/AuthContext'
 
 const CATEGORIES = ['All', 'PROGRAMMING', 'DESIGN', 'LANGUAGE', 'MUSIC', 'BUSINESS', 'COOKING', 'PHOTOGRAPHY', 'FITNESS']
 
-const toLabel = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''
-
 export default function SearchPage() {
   const { user } = useAuth()
+  const { t } = useTranslation()
   const [skills, setSkills] = useState([])
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
@@ -88,8 +88,8 @@ export default function SearchPage() {
   return (
     <div className="container" style={{ paddingTop: 24 }}>
       <div className="page-header">
-        <h1>Discover skills</h1>
-        <p>Find a peer to teach you something new</p>
+        <h1>{t('search.title')}</h1>
+        <p>{t('search.subtitle')}</p>
       </div>
 
       <form onSubmit={handleSearch} style={{ marginBottom: 20 }}>
@@ -97,24 +97,24 @@ export default function SearchPage() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          <input placeholder="Search skills, e.g. Python, Design, Guitar..." value={query} onChange={e => setQuery(e.target.value)} />
-          <button type="submit" className="btn btn-primary btn-sm">Search</button>
+          <input placeholder={t('search.placeholder')} value={query} onChange={e => setQuery(e.target.value)} />
+          <button type="submit" className="btn btn-primary btn-sm">{t('common.search')}</button>
         </div>
       </form>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 20 }}>
+      <div className="search-filters">
         <div className="chip-bar" style={{ flex: 1, minWidth: 0 }}>
           {CATEGORIES.map(cat => (
             <button key={cat} className={`chip ${category === cat && !cityOnly ? 'active' : ''}`}
               onClick={() => { setCategory(cat); setQuery(''); setCityOnly(false) }}>
-              {cat === 'All' ? 'All' : toLabel(cat)}
+              {t(`categories.${cat}`)}
             </button>
           ))}
         </div>
 
-        <div style={{ width: 1, height: 28, background: 'var(--border)', flexShrink: 0, margin: '0 16px' }} />
+        <div className="search-filters-sep" />
 
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+        <div className="search-filters-controls">
           <button
             type="button"
             className={`btn btn-sm ${cityOnly ? 'btn-primary' : 'btn-outline'}`}
@@ -126,23 +126,23 @@ export default function SearchPage() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
             </svg>
-            {user?.city || 'My city'}
+            {user?.city || t('search.myCity')}
           </button>
 
           <select className="form-select" style={{ width: 'auto' }} value={sort} onChange={e => setSort(e.target.value)}>
-            <option value="rating">Top rated</option>
-            <option value="newest">Newest</option>
+            <option value="rating">{t('search.topRated')}</option>
+            <option value="newest">{t('search.newest')}</option>
           </select>
         </div>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>Searching...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>{t('search.searching')}</div>
       ) : skills.length === 0 ? (
         <div className="empty-state">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <h3>No skills found</h3>
-          <p>{cityOnly ? `No skills offered in ${user?.city} yet.` : 'Try: JavaScript, Web Design, Photography...'}</p>
+          <h3>{t('search.noResultsTitle')}</h3>
+          <p>{cityOnly ? t('search.noResultsCity', { city: user?.city }) : t('search.noResultsHint')}</p>
         </div>
       ) : (
         <>
@@ -152,7 +152,7 @@ export default function SearchPage() {
           {!cityOnly && skills.length < total && (
             <div style={{ textAlign: 'center', marginTop: 24 }}>
               <button className="btn btn-outline" onClick={loadMore} disabled={loading}>
-                {loading ? 'Loading…' : `Load more (${skills.length} of ${total})`}
+                {loading ? t('common.loading') : t('search.loadMoreCount', { shown: skills.length, total })}
               </button>
             </div>
           )}

@@ -50,6 +50,10 @@ public class Proposal {
     @Column(name = "decided_at")
     private LocalDateTime decidedAt;
 
+    /** Optional note from the recipient explaining a decline. */
+    @Column(length = 500)
+    private String reason;
+
     @PrePersist
     void onCreate() { if (createdAt == null) createdAt = LocalDateTime.now(); }
 
@@ -72,4 +76,6 @@ public class Proposal {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getDecidedAt() { return decidedAt; }
     public void setDecidedAt(LocalDateTime t) { this.decidedAt = t; }
+    public String getReason() { return reason; }
+    public void setReason(String r) { this.reason = r; }
 }

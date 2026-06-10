@@ -27,17 +27,21 @@ public class ProposalService {
     private final SkillRepository skillRepo;
     private final ExchangeService exchangeService;
     private final NotificationService notifService;
+    private final BlockService blockService;
 
     public ProposalService(ProposalRepository p, ExchangeRepository e, UserRepository u,
-                           SkillRepository s, ExchangeService ex, NotificationService n) {
+                           SkillRepository s, ExchangeService ex, NotificationService n, BlockService b) {
         this.proposalRepo = p; this.exchangeRepo = e; this.userRepo = u;
-        this.skillRepo = s; this.exchangeService = ex; this.notifService = n;
+        this.skillRepo = s; this.exchangeService = ex; this.notifService = n; this.blockService = b;
     }
 
     @Transactional
     public Proposal propose(UUID fromId, ProposeRequest req) {
         if (fromId.equals(req.getToUserId())) {
             throw new IllegalArgumentException("You cannot propose an exchange with yourself");
+        }
+        if (blockService.isBlockedBetween(fromId, req.getToUserId())) {
+            throw new IllegalStateException("You can't propose an exchange with this user");
         }
         User from = userRepo.findById(fromId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -107,16 +111,19 @@ public class ProposalService {
     }
 
     @Transactional
-    public void decline(UUID proposalId, UUID callerId) {
+    public void decline(UUID proposalId, UUID callerId, String reason) {
         Proposal p = loadPending(proposalId);
         if (!p.getToUser().getUserId().equals(callerId)) {
             throw new SecurityException("Only the recipient can decline this proposal");
         }
         p.setStatus(ProposalStatus.DECLINED);
         p.setDecidedAt(LocalDateTime.now());
+        String trimmedReason = (reason != null && !reason.isBlank()) ? reason.trim() : null;
+        p.setReason(trimmedReason);
         proposalRepo.save(p);
-        notifService.create(p.getFromUser().getUserId(), NotificationType.MATCH_DECLINED,
-                p.getToUser().getDisplayName() + " declined your exchange proposal.");
+        String note = p.getToUser().getDisplayName() + " declined your exchange proposal."
+                + (trimmedReason != null ? " Reason: \"" + trimmedReason + "\"" : "");
+        notifService.create(p.getFromUser().getUserId(), NotificationType.MATCH_DECLINED, note);
     }
 
     @Transactional

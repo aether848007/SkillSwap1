@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { useNativeApp } from './hooks/useNativeApp'
 import Navbar from './components/Navbar'
 import LoginPage from './pages/LoginPage'
 import SearchPage from './pages/SearchPage'
@@ -24,6 +25,7 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   const { user } = useAuth()
+  useNativeApp()
 
   return (
     <div className="app">

@@ -18,9 +18,11 @@ public class MatchService {
     private static final Logger log = LoggerFactory.getLogger(MatchService.class);
 
     private final SkillProfileRepository profileRepo;
+    private final BlockService blockService;
 
-    public MatchService(SkillProfileRepository profileRepo) {
+    public MatchService(SkillProfileRepository profileRepo, BlockService blockService) {
         this.profileRepo = profileRepo;
+        this.blockService = blockService;
     }
 
     @Transactional(readOnly = true)
@@ -42,10 +44,12 @@ public class MatchService {
         }
 
         List<SkillProfile> candidates = profileRepo.findAllOtherUsersWithSkills(userId);
+        Set<UUID> hidden = blockService.hiddenFrom(userId);
         log.info("findMatches: found {} candidate profiles", candidates.size());
         List<MatchResult> results = new ArrayList<>();
 
         for (SkillProfile candidate : candidates) {
+            if (hidden.contains(candidate.getUser().getUserId())) continue;
             List<Skill> theirOffered = activeSkills(candidate, true);
             List<Skill> theirWanted  = activeSkills(candidate, false);
 

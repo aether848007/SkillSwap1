@@ -31,3 +31,6 @@ uploads/
 
 # Logs
 *.log
+
+# Tunnel binary
+ngrok.exe

@@ -41,10 +41,11 @@ public class SessionController {
 
     /** Transition a session: confirm / decline / start / complete / cancel. */
     @PatchMapping("/{id}/status")
-    public ResponseEntity<?> updateStatus(Authentication auth, @PathVariable UUID id, @RequestParam String status) {
+    public ResponseEntity<?> updateStatus(Authentication auth, @PathVariable UUID id, @RequestParam String status,
+                                          @RequestParam(required = false) String reason) {
         UUID callerId = (UUID) auth.getPrincipal();
         try {
-            return ResponseEntity.ok(sessionService.updateStatus(callerId, id, status));
+            return ResponseEntity.ok(sessionService.updateStatus(callerId, id, status, reason));
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {

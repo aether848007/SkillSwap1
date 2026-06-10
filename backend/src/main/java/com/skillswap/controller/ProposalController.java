@@ -59,10 +59,12 @@ public class ProposalController {
     }
 
     @PatchMapping("/{id}/decline")
-    public ResponseEntity<?> decline(Authentication auth, @PathVariable UUID id) {
+    public ResponseEntity<?> decline(Authentication auth, @PathVariable UUID id,
+                                     @RequestBody(required = false) Map<String, String> body) {
         UUID userId = (UUID) auth.getPrincipal();
+        String reason = body != null ? body.get("reason") : null;
         try {
-            proposalService.decline(id, userId);
+            proposalService.decline(id, userId, reason);
             return ResponseEntity.ok(Map.of("status", "declined"));
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
@@ -95,6 +97,7 @@ public class ProposalController {
         m.put("proposalId", p.getProposalId());
         m.put("status", p.getStatus());
         m.put("message", p.getMessage());
+        m.put("reason", p.getReason());
         m.put("createdAt", p.getCreatedAt());
         m.put("direction", iSent ? "sent" : "received");
         m.put("otherUser", Map.of(

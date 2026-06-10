@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import OtpView from '../components/OtpView'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 
 export default function LoginPage() {
+  const { t } = useTranslation()
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -125,13 +128,17 @@ export default function LoginPage() {
             />
           ) : (
             <>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                <LanguageSwitcher />
+              </div>
+
               {/* Tab toggle */}
               <div className="auth-tabs">
                 <button type="button" className={`auth-tab${isLogin ? ' active' : ''}`} onClick={() => switchTab(true)}>
-                  Sign in
+                  {t('login.signIn')}
                 </button>
                 <button type="button" className={`auth-tab${!isLogin ? ' active' : ''}`} onClick={() => switchTab(false)}>
-                  Create account
+                  {t('login.createAccount')}
                 </button>
               </div>
 
@@ -146,37 +153,37 @@ export default function LoginPage() {
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                 </svg>
-                Continue with Google
+                {t('login.continueGoogle')}
               </button>
 
-              <div className="auth-divider">or</div>
+              <div className="auth-divider">{t('login.or')}</div>
 
               <form onSubmit={handleSubmit}>
                 {!isLogin && (
                   <>
                     <div className="form-group">
-                      <label className="form-label">Display name</label>
+                      <label className="form-label">{t('login.displayName')}</label>
                       <input
                         className="form-input"
                         value={displayName}
                         onChange={e => setDisplayName(e.target.value)}
-                        placeholder="Your name"
+                        placeholder={t('login.yourName')}
                         required
                       />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">City</label>
+                      <label className="form-label">{t('login.city')}</label>
                       <input
                         className="form-input"
                         value={city}
                         onChange={e => setCity(e.target.value)}
-                        placeholder="e.g. Astana"
+                        placeholder={t('login.cityPlaceholder')}
                       />
                     </div>
                   </>
                 )}
                 <div className="form-group">
-                  <label className="form-label">Email</label>
+                  <label className="form-label">{t('login.email')}</label>
                   <input
                     className="form-input"
                     type="email"
@@ -187,7 +194,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Password</label>
+                  <label className="form-label">{t('login.password')}</label>
                   <input
                     className="form-input"
                     type="password"
@@ -199,7 +206,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <button className="auth-submit" type="submit" disabled={loading}>
-                  {loading ? 'Sending code…' : isLogin ? 'Continue' : 'Create account'}
+                  {loading ? t('login.sendingCode') : isLogin ? t('login.continue') : t('login.createAccount')}
                 </button>
               </form>
 

@@ -10,6 +10,14 @@ import java.util.UUID;
 public interface MessageRepository extends JpaRepository<Message, UUID> {
     List<Message> findByConversationIdOrderBySentAtAsc(UUID conversationId);
 
+    /** Bounded fetch — newest first; the service reverses to chronological order for display. */
+    List<Message> findByConversationIdOrderBySentAtDesc(UUID conversationId, org.springframework.data.domain.Pageable pageable);
+
+    /** True if the user is a participant (sender or receiver) of the conversation. */
+    @Query("SELECT COUNT(m) > 0 FROM Message m WHERE m.conversationId = :convId " +
+           "AND (m.sender.userId = :userId OR m.receiver.userId = :userId)")
+    boolean isParticipant(@Param("convId") UUID convId, @Param("userId") UUID userId);
+
     @Query("SELECT DISTINCT m.conversationId FROM Message m WHERE m.sender.userId = :userId OR m.receiver.userId = :userId")
     List<UUID> findConversationIdsByUserId(@Param("userId") UUID userId);
 

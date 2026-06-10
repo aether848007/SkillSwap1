@@ -3,6 +3,7 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import Toast from '../components/Toast';
 import StarRating from '../components/StarRating';
+import { detectCategory } from '../utils/detectCategory';
 
 const CATEGORIES = [
   'PROGRAMMING', 'DESIGN', 'LANGUAGE', 'MUSIC',
@@ -61,6 +62,20 @@ export default function ProfilePage() {
 
   const [editForm, setEditForm]   = useState({ displayName: '', bio: '', city: '' });
   const [skillForm, setSkillForm] = useState(DEFAULT_SKILL_FORM);
+  // Tracks whether the user manually picked a category; if not, we auto-detect from the title.
+  const [categoryTouched, setCategoryTouched] = useState(false);
+
+  // Update the title and, unless the user has overridden the category, auto-detect it.
+  const handleTitleChange = (value) => {
+    setSkillForm((f) => {
+      const next = { ...f, title: value };
+      if (!categoryTouched) {
+        const detected = detectCategory(value);
+        if (detected) next.category = detected;
+      }
+      return next;
+    });
+  };
 
   const fileInputRef = useRef(null);
 
@@ -118,6 +133,7 @@ export default function ProfilePage() {
       setSkills((prev) => [...prev, res.data]);
       setShowModal(false);
       setSkillForm(DEFAULT_SKILL_FORM);
+      setCategoryTouched(false);
       showToast('Skill added');
     } catch {
       showToast('Failed to add skill');
@@ -304,6 +320,7 @@ export default function ProfilePage() {
 
         const openAdd = (offered) => {
           setSkillForm({ ...DEFAULT_SKILL_FORM, isOffered: offered })
+          setCategoryTouched(false)
           setShowModal(true)
         }
 
@@ -465,7 +482,7 @@ export default function ProfilePage() {
                   type="text"
                   required
                   value={skillForm.title}
-                  onChange={(e) => setSkillForm({ ...skillForm, title: e.target.value })}
+                  onChange={(e) => handleTitleChange(e.target.value)}
                   placeholder="e.g. Python, Guitar, Photography"
                   maxLength={100}
                   className="form-input"
@@ -476,10 +493,13 @@ export default function ProfilePage() {
                 <div>
                   <label className="form-label">
                     Category <span style={{ color: 'var(--danger)' }}>*</span>
+                    {!categoryTouched && skillForm.title.trim() && detectCategory(skillForm.title) && (
+                      <span style={{ color: 'var(--mute)', fontWeight: 400, fontSize: 12, marginLeft: 6 }}>· auto</span>
+                    )}
                   </label>
                   <select
                     value={skillForm.category}
-                    onChange={(e) => setSkillForm({ ...skillForm, category: e.target.value })}
+                    onChange={(e) => { setSkillForm({ ...skillForm, category: e.target.value }); setCategoryTouched(true); }}
                     className="form-select"
                   >
                     {CATEGORIES.map((c) => <option key={c} value={c}>{toLabel(c)}</option>)}

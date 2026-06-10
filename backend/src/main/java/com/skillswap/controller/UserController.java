@@ -7,6 +7,7 @@ import com.skillswap.model.SkillProfile;
 import com.skillswap.repository.UserRepository;
 import com.skillswap.repository.SkillProfileRepository;
 import com.skillswap.repository.RatingRepository;
+import com.skillswap.service.BlockService;
 import com.skillswap.service.SkillService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
@@ -24,9 +25,12 @@ public class UserController {
     private final SkillProfileRepository profileRepo;
     private final RatingRepository ratingRepo;
     private final SkillService skillService;
+    private final BlockService blockService;
 
-    public UserController(UserRepository u, SkillProfileRepository p, RatingRepository r, SkillService s) {
+    public UserController(UserRepository u, SkillProfileRepository p, RatingRepository r,
+                          SkillService s, BlockService b) {
         this.userRepo = u; this.profileRepo = p; this.ratingRepo = r; this.skillService = s;
+        this.blockService = b;
     }
 
     @GetMapping("/me")
@@ -51,14 +55,40 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUser(@PathVariable UUID id) {
+    public ResponseEntity<?> getUser(Authentication auth, @PathVariable UUID id) {
         User user = userRepo.findById(id).orElseThrow();
-        return ResponseEntity.ok(buildUserMap(user));
+        Map<String, Object> map = buildUserMap(user);
+        UUID viewerId = (UUID) auth.getPrincipal();
+        if (!viewerId.equals(id)) {
+            map.put("isBlocked", blockService.blockedIds(viewerId).contains(id));
+        }
+        return ResponseEntity.ok(map);
     }
 
     @GetMapping("/{id}/reviews")
     public ResponseEntity<?> getUserReviews(@PathVariable UUID id) {
         return ResponseEntity.ok(ratingRepo.findByRateeUserIdOrderByCreatedAtDesc(id));
+    }
+
+    /** Block another user — hides them from search/matches and forbids proposals & messages. */
+    @PostMapping("/{id}/block")
+    public ResponseEntity<?> block(Authentication auth, @PathVariable UUID id) {
+        UUID me = (UUID) auth.getPrincipal();
+        blockService.block(me, id);
+        return ResponseEntity.ok(Map.of("status", "blocked"));
+    }
+
+    @DeleteMapping("/{id}/block")
+    public ResponseEntity<?> unblock(Authentication auth, @PathVariable UUID id) {
+        UUID me = (UUID) auth.getPrincipal();
+        blockService.unblock(me, id);
+        return ResponseEntity.ok(Map.of("status", "unblocked"));
+    }
+
+    @GetMapping("/me/blocked")
+    public ResponseEntity<?> myBlocked(Authentication auth) {
+        UUID me = (UUID) auth.getPrincipal();
+        return ResponseEntity.ok(blockService.blockedIds(me));
     }
 
     private static final Set<String> ALLOWED_AVATAR_TYPES = Set.of("image/jpeg", "image/png", "image/webp");

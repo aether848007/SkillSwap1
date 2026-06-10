@@ -229,9 +229,11 @@ export default function MatchesPage() {
   }
 
   const handleDecline = async (id) => {
+    // Optional, friendly reason the proposer will see. Blank/cancel still declines.
+    const reason = window.prompt('Add an optional reason (the other person will see it), or leave blank:') || ''
     setActionBusy(id)
     try {
-      await api.patch(`/proposals/${id}/decline`)
+      await api.patch(`/proposals/${id}/decline`, reason.trim() ? { reason: reason.trim() } : {})
       setIncoming(prev => prev.filter(p => p.proposalId !== id))
       showToast('Declined.')
     } catch (e) {

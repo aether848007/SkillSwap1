@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -14,18 +15,9 @@ const STATUS_COLORS = {
   RATED:       'badge-completed',
 }
 
-const STATUS_LABELS = {
-  REQUESTED:   'Requested',
-  CONFIRMED:   'Confirmed',
-  COMPLETED:   'Completed',
-  IN_PROGRESS: 'In progress',
-  CANCELLED:   'Cancelled',
-  DECLINED:    'Declined',
-  RATED:       'Rated',
-}
-
 export default function SessionsPage() {
   const { user } = useAuth()
+  const { t } = useTranslation()
   const [sessions, setSessions]     = useState([])
   const [filter, setFilter]         = useState('all')
   const [loading, setLoading]       = useState(true)
@@ -54,11 +46,32 @@ export default function SessionsPage() {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
-  const updateStatus = async (id, status) => {
+  const updateStatus = async (id, status, reason) => {
     try {
-      await api.patch(`/sessions/${id}/status?status=${status}`)
+      const q = reason ? `?status=${status}&reason=${encodeURIComponent(reason)}` : `?status=${status}`
+      await api.patch(`/sessions/${id}/status${q}`)
       fetchSessions()
     } catch { showToast('Failed to update session') }
+  }
+
+  const declineSession = (id) => {
+    const reason = window.prompt('Optional: tell them why you can’t make this time (or leave blank):') || ''
+    updateStatus(id, 'DECLINED', reason.trim() || undefined)
+  }
+
+  // Learner proposes a new time for an already-confirmed session (CONFIRMED -> REQUESTED).
+  const reschedule = async (session) => {
+    const input = window.prompt('Propose a new date & time (YYYY-MM-DD HH:MM):',
+      session.scheduledAt ? session.scheduledAt.slice(0, 16).replace('T', ' ') : '')
+    if (!input) return
+    const iso = input.trim().replace(' ', 'T')
+    try {
+      await api.patch(`/sessions/${session.sessionId}/schedule`, { scheduledAt: iso })
+      showToast('New time proposed.')
+      fetchSessions()
+    } catch (e) {
+      showToast(e.response?.data?.error || 'Couldn’t reschedule — use format YYYY-MM-DD HH:MM')
+    }
   }
 
   const submitRating = async () => {
@@ -88,20 +101,20 @@ export default function SessionsPage() {
   return (
     <div className="container" style={{ paddingTop: 24 }}>
       <div className="page-header">
-        <h1>My sessions</h1>
-        <p>Manage your skill exchange sessions</p>
+        <h1>{t('sessions.title')}</h1>
+        <p>{t('sessions.subtitle')}</p>
       </div>
 
       <div className="tabs">
         {['all', 'REQUESTED', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map(f => (
           <div key={f} className={`tab ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
-            {f === 'all' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+            {f === 'all' ? t('sessions.all') : t(`sessionStatus.${f}`, f)}
           </div>
         ))}
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>Loading sessions...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>{t('common.loading')}</div>
       ) : filtered.length === 0 ? (
         <div className="empty-state">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -110,8 +123,8 @@ export default function SessionsPage() {
             <line x1="8" y1="2" x2="8" y2="6"/>
             <line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
-          <h3>No sessions yet</h3>
-          <p>Request a session from a skill provider to get started</p>
+          <h3>{t('sessions.emptyTitle')}</h3>
+          <p>{t('sessions.emptyHint')}</p>
         </div>
       ) : (
         filtered.map(session => (
@@ -132,25 +145,30 @@ export default function SessionsPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <span className={`badge badge-status ${STATUS_COLORS[session.status] || ''}`}>
-                {STATUS_LABELS[session.status] || session.status}
+                {t(`sessionStatus.${session.status}`, session.status)}
               </span>
 
               {session.status === 'REQUESTED' && session.provider?.userId === user?.userId && (
                 <div className="session-actions">
-                  <button className="btn btn-primary btn-sm" onClick={() => updateStatus(session.sessionId, 'CONFIRMED')}>Accept</button>
-                  <button className="btn btn-outline btn-sm" onClick={() => updateStatus(session.sessionId, 'DECLINED')}>Decline</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => updateStatus(session.sessionId, 'CONFIRMED')}>{t('sessions.accept')}</button>
+                  <button className="btn btn-outline btn-sm" onClick={() => declineSession(session.sessionId)}>{t('sessions.decline')}</button>
                 </div>
               )}
 
               {session.status === 'CONFIRMED' && (
-                <button className="btn btn-accent btn-sm" onClick={() => updateStatus(session.sessionId, 'COMPLETED')}>
-                  Mark complete
-                </button>
+                <div className="session-actions">
+                  {session.learner?.userId === user?.userId && (
+                    <button className="btn btn-outline btn-sm" onClick={() => reschedule(session)}>{t('sessions.reschedule')}</button>
+                  )}
+                  <button className="btn btn-accent btn-sm" onClick={() => updateStatus(session.sessionId, 'COMPLETED')}>
+                    {t('sessions.markComplete')}
+                  </button>
+                </div>
               )}
 
               {session.status === 'COMPLETED' && (
                 <button className="btn btn-outline btn-sm" onClick={() => { setRating(session); setScore(5); setComment('') }}>
-                  Rate session
+                  {t('sessions.rate')}
                 </button>
               )}
             </div>

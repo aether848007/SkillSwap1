@@ -71,7 +71,7 @@ public class SessionService {
      * COMPLETED/CANCELLED/IN_PROGRESS may be done by either participant.
      */
     @Transactional
-    public Session updateStatus(UUID callerId, UUID sessionId, String status) {
+    public Session updateStatus(UUID callerId, UUID sessionId, String status, String reason) {
         Session session = sessionRepo.findByIdWithFetch(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found"));
         UUID providerId = session.getProvider().getUserId();
@@ -112,8 +112,11 @@ public class SessionService {
         switch (newStatus) {
             case CONFIRMED -> notifService.create(learnerId, NotificationType.SESSION_ACCEPTED,
                     providerName + " confirmed your session for \"" + skillTitle + "\".");
-            case DECLINED -> notifService.create(learnerId, NotificationType.SESSION_DECLINED,
-                    providerName + " can't make that time for \"" + skillTitle + "\" — propose another.");
+            case DECLINED -> {
+                String why = (reason != null && !reason.isBlank()) ? " Reason: \"" + reason.trim() + "\"" : "";
+                notifService.create(learnerId, NotificationType.SESSION_DECLINED,
+                        providerName + " can't make that time for \"" + skillTitle + "\" — propose another." + why);
+            }
             case COMPLETED -> {
                 notifService.create(learnerId, NotificationType.SESSION_COMPLETED,
                         "Session \"" + skillTitle + "\" with " + providerName + " is done. Leave a rating!");

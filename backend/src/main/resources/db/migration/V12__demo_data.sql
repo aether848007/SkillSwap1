@@ -32,6 +32,9 @@ ON CONFLICT (email) DO NOTHING;
 
 -- Skill profiles
 INSERT INTO skill_profiles (profile_id, user_id, average_rating, total_sessions)
+SELECT gen_random_uuid(), user_id, 0.0, 0 FROM users WHERE email = 'bekaaliyev848007@gmail.com'
+ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO skill_profiles (profile_id, user_id, average_rating, total_sessions)
 SELECT gen_random_uuid(), user_id, 4.8, 12 FROM users WHERE email = 'asel@mail.com'
 ON CONFLICT (user_id) DO NOTHING;
 INSERT INTO skill_profiles (profile_id, user_id, average_rating, total_sessions)

@@ -5,6 +5,8 @@ import com.skillswap.model.User;
 import com.skillswap.model.enums.NotificationType;
 import com.skillswap.repository.MessageRepository;
 import com.skillswap.repository.UserRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
@@ -13,12 +15,16 @@ public class MessageService {
     private final MessageRepository msgRepo;
     private final UserRepository userRepo;
     private final NotificationService notifService;
+    private final BlockService blockService;
 
-    public MessageService(MessageRepository m, UserRepository u, NotificationService n) {
-        this.msgRepo = m; this.userRepo = u; this.notifService = n;
+    public MessageService(MessageRepository m, UserRepository u, NotificationService n, BlockService b) {
+        this.msgRepo = m; this.userRepo = u; this.notifService = n; this.blockService = b;
     }
 
     public Message sendMessage(UUID senderId, UUID receiverId, String content) {
+        if (blockService.isBlockedBetween(senderId, receiverId)) {
+            throw new AccessDeniedException("You can't message this user");
+        }
         UUID convId = generateConversationId(senderId, receiverId);
         User sender = userRepo.findById(senderId).orElseThrow();
         User receiver = userRepo.findById(receiverId).orElseThrow();
@@ -36,9 +42,17 @@ public class MessageService {
         return saved;
     }
 
-    public List<Message> getConversation(UUID convId) {
-        return msgRepo.findByConversationIdOrderBySentAtAsc(convId);
+    /** Latest messages in a conversation, chronological order. Caller must be a participant. */
+    public List<Message> getConversation(UUID convId, UUID requesterId) {
+        if (!msgRepo.isParticipant(convId, requesterId)) {
+            throw new AccessDeniedException("You are not a participant in this conversation");
+        }
+        List<Message> latest = msgRepo.findByConversationIdOrderBySentAtDesc(convId, PageRequest.of(0, MAX_CONVERSATION_MESSAGES));
+        Collections.reverse(latest);
+        return latest;
     }
+
+    private static final int MAX_CONVERSATION_MESSAGES = 200;
 
     public List<UUID> getUserConversations(UUID userId) {
         return msgRepo.findConversationIdsByUserId(userId);

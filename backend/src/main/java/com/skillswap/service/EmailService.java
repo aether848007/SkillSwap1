@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
@@ -32,6 +33,15 @@ public class EmailService {
         String subject = "Your SkillSwap verification code";
         String body = "Your SkillSwap verification code is: " + code + "\n\n"
                 + "It expires in " + validMinutes + " minutes. If you didn't request this, ignore this email.";
+        send(toEmail, subject, body);
+    }
+
+    /**
+     * Fire-and-forget transactional email for in-app events (proposals, sessions, ratings).
+     * Runs on a background thread so request latency isn't tied to SMTP, and never throws.
+     */
+    @Async
+    public void sendNotificationEmail(String toEmail, String subject, String body) {
         send(toEmail, subject, body);
     }
 

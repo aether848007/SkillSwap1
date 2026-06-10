@@ -20,7 +20,7 @@ jwt:
 
 app:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000,https://localhost,capacitor://localhost,http://localhost}
   mail:
     from: ${MAIL_FROM:no-reply@skillswap.local}
 
@@ -53,6 +53,9 @@ management:
       probes:
         enabled: true
       show-details: never
+  health:
+    mail:
+      enabled: false
 
 logging:
   level:
