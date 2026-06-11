@@ -35,6 +35,10 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/api/search/**", "/actuator/health/**").permitAll()
+                // WebSocket handshake (SockJS XHRs and raw WS upgrades can't carry the Bearer
+                // header). Auth happens at the STOMP layer: WebSocketAuthInterceptor rejects
+                // CONNECT frames without a valid JWT.
+                .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()  // only reachable when dev profile enables H2
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

@@ -7,6 +7,10 @@ ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ARG VITE_GOOGLE_CLIENT_ID
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+# Web build must use same-origin websockets (nginx proxies /ws); without this override the
+# Capacitor-oriented VITE_WS_BASE_URL from .env.production (ngrok URL) would leak in.
+ARG VITE_WS_BASE_URL=""
+ENV VITE_WS_BASE_URL=$VITE_WS_BASE_URL
 RUN npm run build
 
 FROM nginx:alpine

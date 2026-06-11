@@ -1,6 +1,11 @@
 import axios from 'axios'
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || '/api' })
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  // ngrok free serves an HTML interstitial to browser-looking requests unless this header is
+  // present. Harmless for non-ngrok hosts.
+  headers: { 'ngrok-skip-browser-warning': 'true' },
+})
 
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('token')

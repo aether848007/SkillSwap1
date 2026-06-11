@@ -30,8 +30,15 @@ export function useWebSocket({ onMessage, onNotification, conversationId } = {})
         ])
         const SockJS = SockJSModule.default ?? SockJSModule
 
+        // Over https (e.g. the ngrok tunnel) use a raw WebSocket against the SockJS endpoint's
+        // native-WS URL: SockJS's initial /info XHR can't carry the ngrok interstitial-skip
+        // header, but WebSocket upgrade requests pass straight through.
+        const makeSocket = WS_BASE.startsWith('https')
+          ? () => new WebSocket(`${WS_BASE.replace(/^http/, 'ws')}/ws/websocket`)
+          : () => new SockJS(WS_URL)
+
         client = new Client({
-          webSocketFactory: () => new SockJS(WS_URL),
+          webSocketFactory: makeSocket,
           connectHeaders: { Authorization: `Bearer ${token}` },
           reconnectDelay: 5000,
           onConnect: () => {

@@ -189,6 +189,7 @@ export default function MatchesPage() {
   const { t } = useTranslation()
   const [matches, setMatches] = useState([])
   const [incoming, setIncoming] = useState([])
+  const [mySkills, setMySkills] = useState(null) // null = not loaded yet (hide tip until known)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [proposing, setProposing] = useState(null)
@@ -213,6 +214,8 @@ export default function MatchesPage() {
       api.get('/proposals').then(r => {
         setIncoming((r.data || []).filter(p => p.direction === 'received' && p.status === 'PENDING'))
       }).catch(() => {}),
+      // Fresh skills (the cached auth user object can be stale) — drives the "add skills" tip.
+      api.get('/skills/my').then(r => setMySkills(r.data || [])).catch(() => {}),
     ]).finally(() => setLoading(false))
   }, [])
 
@@ -247,9 +250,9 @@ export default function MatchesPage() {
     }
   }
 
-  const mySkills = user?.skills || []
-  const hasOffered = mySkills.some(s => s.isOffered)
-  const hasWanted  = mySkills.some(s => !s.isOffered)
+  // Only show the "add skills" tip once skills have actually loaded and one side is missing.
+  const hasOffered = mySkills === null || mySkills.some(s => s.isOffered)
+  const hasWanted  = mySkills === null || mySkills.some(s => !s.isOffered)
 
   const visibleMatches = cityOnly && user?.city
     ? matches.filter(m => m.city && m.city.toLowerCase() === user.city.toLowerCase())
