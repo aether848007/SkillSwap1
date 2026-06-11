@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import Toast from '../components/Toast';
@@ -49,6 +50,7 @@ const DEFAULT_SKILL_FORM = {
 };
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const { user, updateUser } = useAuth();
 
   const [profile, setProfile]     = useState(null);
@@ -103,7 +105,7 @@ export default function ProfilePage() {
           .catch(() => {});
       }
     } catch {
-      showToast('Failed to load profile');
+      showToast(t('profile.loadFail'));
     } finally {
       setLoading(false);
     }
@@ -117,9 +119,9 @@ export default function ProfilePage() {
       setProfile(res.data);
       updateUser({ displayName: res.data.displayName, bio: res.data.bio, city: res.data.city });
       setEditing(false);
-      showToast('Profile updated');
+      showToast(t('profile.profileUpdated'));
     } catch {
-      showToast('Failed to update profile');
+      showToast(t('profile.profileUpdateFail'));
     } finally {
       setSaving(false);
     }
@@ -134,9 +136,9 @@ export default function ProfilePage() {
       setShowModal(false);
       setSkillForm(DEFAULT_SKILL_FORM);
       setCategoryTouched(false);
-      showToast('Skill added');
+      showToast(t('profile.skillAdded'));
     } catch {
-      showToast('Failed to add skill');
+      showToast(t('profile.skillAddFail'));
     } finally {
       setSaving(false);
     }
@@ -147,14 +149,14 @@ export default function ProfilePage() {
       await api.delete(`/skills/${skillId}`);
       setSkills((prev) => prev.filter((s) => s.skillId !== skillId));
     } catch {
-      showToast('Failed to delete skill');
+      showToast(t('profile.skillDeleteFail'));
     }
   };
 
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 192, color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-        Loading profile…
+        {t('profile.loadingProfile')}
       </div>
     );
   }
@@ -168,7 +170,7 @@ export default function ProfilePage() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()} title="Click to change photo">
+            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()} title={t('profile.changePhoto')}>
               {profile?.avatarUrl ? (
                 <img
                   src={profile.avatarUrl}
@@ -185,7 +187,7 @@ export default function ProfilePage() {
                 onMouseEnter={e => e.currentTarget.style.opacity = 1}
                 onMouseLeave={e => e.currentTarget.style.opacity = 0}
               >
-                <span style={{ color: '#fff', fontSize: 11, fontWeight: 600 }}>Edit</span>
+                <span style={{ color: '#fff', fontSize: 11, fontWeight: 600 }}>{t('profile.edit')}</span>
               </div>
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
@@ -202,10 +204,10 @@ export default function ProfilePage() {
                   const res = await api.post('/users/me/avatar', form);
                   setProfile(p => ({ ...p, avatarUrl: res.data.avatarUrl }));
                   updateUser({ avatarUrl: res.data.avatarUrl });
-                  showToast('Photo updated');
+                  showToast(t('profile.photoUpdated'));
                 } catch {
                   setProfile(p => ({ ...p, avatarUrl: profile?.avatarUrl ?? null }));
-                  showToast('Failed to upload photo');
+                  showToast(t('profile.photoFail'));
                 }
               }}
             />
@@ -223,7 +225,7 @@ export default function ProfilePage() {
             className="btn btn-outline btn-sm"
             style={{ flexShrink: 0 }}
           >
-            {editing ? 'Cancel' : 'Edit'}
+            {editing ? t('profile.cancel') : t('profile.edit')}
           </button>
         </div>
 
@@ -242,7 +244,7 @@ export default function ProfilePage() {
                 </span>
               </div>
               <div style={{ fontSize: 12, color: 'var(--mute)', fontWeight: 600, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                Average rating
+                {t('profile.averageRating')}
               </div>
             </div>
             <div style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
@@ -250,7 +252,7 @@ export default function ProfilePage() {
                 {profile?.totalSessions || 0}
               </div>
               <div style={{ fontSize: 12, color: 'var(--mute)', fontWeight: 600, marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                Sessions
+                {t('profile.sessions')}
               </div>
             </div>
             <div style={{ textAlign: 'center' }}>
@@ -258,7 +260,7 @@ export default function ProfilePage() {
                 {reviews.length}
               </div>
               <div style={{ fontSize: 12, color: 'var(--mute)', fontWeight: 600, marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                Review{reviews.length === 1 ? '' : 's'}
+                {t('profile.reviews')}
               </div>
             </div>
           </div>
@@ -271,7 +273,7 @@ export default function ProfilePage() {
         {editing && (
           <form onSubmit={handleUpdateProfile} style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label className="form-label">Display name</label>
+              <label className="form-label">{t('profile.displayName')}</label>
               <input
                 type="text"
                 value={editForm.displayName}
@@ -281,23 +283,23 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <label className="form-label">Bio</label>
+              <label className="form-label">{t('profile.bio')}</label>
               <textarea
                 value={editForm.bio}
                 onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
                 rows={3}
                 maxLength={1000}
-                placeholder="Tell others what you can teach or want to learn…"
+                placeholder={t('profile.bioPlaceholder')}
                 className="form-textarea"
               />
             </div>
             <div>
-              <label className="form-label">Location</label>
+              <label className="form-label">{t('profile.location')}</label>
               <input
                 type="text"
                 value={editForm.city}
                 onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                placeholder="City, Country"
+                placeholder={t('profile.locationPlaceholder')}
                 className="form-input"
               />
             </div>
@@ -307,7 +309,7 @@ export default function ProfilePage() {
               className="btn btn-primary"
               style={{ alignSelf: 'flex-start' }}
             >
-              {saving ? 'Saving…' : 'Save changes'}
+              {saving ? t('profile.saving') : t('profile.saveChanges')}
             </button>
           </form>
         )}
@@ -333,8 +335,8 @@ export default function ProfilePage() {
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{skill.title}</span>
-                <span className={LEVEL_CLASS[skill.proficiencyLevel] ?? 'badge'}>{toLabel(skill.proficiencyLevel)}</span>
-                <span className="badge badge-category">{toLabel(skill.category)}</span>
+                <span className={LEVEL_CLASS[skill.proficiencyLevel] ?? 'badge'}>{t(`levels.${skill.proficiencyLevel}`)}</span>
+                <span className="badge badge-category">{t(`categories.${skill.category}`)}</span>
               </div>
               {skill.description && (
                 <p style={{ fontSize: 13, color: 'var(--body)', lineHeight: 1.45 }}>{skill.description}</p>
@@ -345,7 +347,7 @@ export default function ProfilePage() {
               style={{ flexShrink: 0, color: 'var(--mute)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 4, transition: 'color 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--negative)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--mute)'}
-              title="Remove"
+              title={t('profile.remove')}
             >
               ✕
             </button>
@@ -372,14 +374,14 @@ export default function ProfilePage() {
                   }} aria-hidden>↗</span>
                   <div>
                     <h2 style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
-                      I can teach
+                      {t('profile.iCanTeach')}
                     </h2>
                     <div style={{ fontSize: 13, color: 'var(--body)', marginTop: 2 }}>
-                      {teachSkills.length} skill{teachSkills.length === 1 ? '' : 's'} you offer to others
+                      {t('profile.teachCount', { count: teachSkills.length })}
                     </div>
                   </div>
                 </div>
-                <button onClick={() => openAdd(true)} className="btn btn-primary btn-sm">+ Add</button>
+                <button onClick={() => openAdd(true)} className="btn btn-primary btn-sm">{t('profile.addShort')}</button>
               </div>
 
               {teachSkills.length === 0 ? (
@@ -389,8 +391,8 @@ export default function ProfilePage() {
                   border: '1px dashed var(--primary-neutral)',
                   color: 'var(--body)', fontSize: 14,
                 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Nothing here yet</div>
-                  Add something you're confident teaching — that's how matches find you.
+                  <div style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{t('profile.nothingHere')}</div>
+                  {t('profile.nothingTeachHint')}
                 </div>
               ) : (
                 <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, listStyle: 'none' }}>
@@ -417,14 +419,14 @@ export default function ProfilePage() {
                   }} aria-hidden>↙</span>
                   <div>
                     <h2 style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
-                      I want to learn
+                      {t('profile.iWantToLearn')}
                     </h2>
                     <div style={{ fontSize: 13, color: 'var(--body)', marginTop: 2 }}>
-                      {learnSkills.length} skill{learnSkills.length === 1 ? '' : 's'} you're looking for
+                      {t('profile.learnCount', { count: learnSkills.length })}
                     </div>
                   </div>
                 </div>
-                <button onClick={() => openAdd(false)} className="btn btn-outline btn-sm">+ Add</button>
+                <button onClick={() => openAdd(false)} className="btn btn-outline btn-sm">{t('profile.addShort')}</button>
               </div>
 
               {learnSkills.length === 0 ? (
@@ -434,8 +436,8 @@ export default function ProfilePage() {
                   border: '1px dashed var(--border)',
                   color: 'var(--body)', fontSize: 14,
                 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Nothing here yet</div>
-                  Tell us what you want to learn — we'll match you with people who teach it.
+                  <div style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{t('profile.nothingHere')}</div>
+                  {t('profile.nothingLearnHint')}
                 </div>
               ) : (
                 <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, listStyle: 'none' }}>
@@ -457,12 +459,10 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, gap: 12 }}>
               <div>
                 <h3 style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.4px' }}>
-                  {skillForm.isOffered ? 'Add a skill you can teach' : 'Add a skill you want to learn'}
+                  {skillForm.isOffered ? t('profile.addSkillTeach') : t('profile.addSkillLearn')}
                 </h3>
                 <p style={{ fontSize: 14, color: 'var(--body)', marginTop: 4 }}>
-                  {skillForm.isOffered
-                    ? "We'll show this to people looking for someone with your skills."
-                    : "We'll find people who can teach you in exchange for your skills."}
+                  {skillForm.isOffered ? t('profile.teachHint') : t('profile.learnHint')}
                 </p>
               </div>
               <button
@@ -476,14 +476,14 @@ export default function ProfilePage() {
             <form onSubmit={handleAddSkill} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <label className="form-label">
-                  Skill name <span style={{ color: 'var(--danger)' }}>*</span>
+                  {t('profile.skillName')} <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={skillForm.title}
                   onChange={(e) => handleTitleChange(e.target.value)}
-                  placeholder="e.g. Python, Guitar, Photography"
+                  placeholder={t('search.placeholder')}
                   maxLength={100}
                   className="form-input"
                 />
@@ -492,9 +492,9 @@ export default function ProfilePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label className="form-label">
-                    Category <span style={{ color: 'var(--danger)' }}>*</span>
+                    {t('profile.category')} <span style={{ color: 'var(--danger)' }}>*</span>
                     {!categoryTouched && skillForm.title.trim() && detectCategory(skillForm.title) && (
-                      <span style={{ color: 'var(--mute)', fontWeight: 400, fontSize: 12, marginLeft: 6 }}>· auto</span>
+                      <span style={{ color: 'var(--mute)', fontWeight: 400, fontSize: 12, marginLeft: 6 }}>{t('profile.auto')}</span>
                     )}
                   </label>
                   <select
@@ -502,30 +502,30 @@ export default function ProfilePage() {
                     onChange={(e) => { setSkillForm({ ...skillForm, category: e.target.value }); setCategoryTouched(true); }}
                     className="form-select"
                   >
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{toLabel(c)}</option>)}
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{t(`categories.${c}`)}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="form-label">
-                    Level <span style={{ color: 'var(--danger)' }}>*</span>
+                    {t('profile.level')} <span style={{ color: 'var(--danger)' }}>*</span>
                   </label>
                   <select
                     value={skillForm.proficiencyLevel}
                     onChange={(e) => setSkillForm({ ...skillForm, proficiencyLevel: e.target.value })}
                     className="form-select"
                   >
-                    {LEVELS.map((l) => <option key={l} value={l}>{toLabel(l)}</option>)}
+                    {LEVELS.map((l) => <option key={l} value={l}>{t(`levels.${l}`)}</option>)}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="form-label">Description</label>
+                <label className="form-label">{t('profile.description')}</label>
                 <textarea
                   value={skillForm.description}
                   onChange={(e) => setSkillForm({ ...skillForm, description: e.target.value })}
                   rows={2}
-                  placeholder="Brief description of what you can teach…"
+                  placeholder={t('profile.descPlaceholder')}
                   className="form-textarea"
                 />
               </div>
@@ -545,15 +545,15 @@ export default function ProfilePage() {
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 900, lineHeight: 1,
                 }} aria-hidden>{skillForm.isOffered ? '↗' : '↙'}</span>
-                Adding to: {skillForm.isOffered ? "I can teach" : "I want to learn"}
+                {skillForm.isOffered ? t('profile.addingToTeach') : t('profile.addingToLearn')}
               </div>
 
               <div style={{ display: 'flex', gap: 12, paddingTop: 4 }}>
                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-outline" style={{ flex: 1 }}>
-                  Cancel
+                  {t('profile.cancel')}
                 </button>
                 <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>
-                  {saving ? 'Adding…' : 'Add skill'}
+                  {saving ? t('profile.adding') : t('profile.addSkill')}
                 </button>
               </div>
             </form>
@@ -572,12 +572,12 @@ export default function ProfilePage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
-              Reviews
+              {t('profile.reviews')}
             </h2>
             <div style={{ fontSize: 13, color: 'var(--body)', marginTop: 4 }}>
               {reviews.length === 0
-                ? 'No reviews yet — complete a session and your partner can rate you.'
-                : `What ${reviews.length === 1 ? 'one person says' : `${reviews.length} people say`} about working with you`}
+                ? t('profile.reviewsEmpty')
+                : t('profile.reviewsSummary', { count: reviews.length })}
             </div>
           </div>
           {reviews.length > 0 && profile?.averageRating != null && (
@@ -615,7 +615,7 @@ export default function ProfilePage() {
                       </div>
                     )}
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
-                      {review.rater?.displayName || 'User'}
+                      {review.rater?.displayName || t('admin.colUser')}
                     </div>
                   </div>
                   <StarRating score={review.score} size={14} />

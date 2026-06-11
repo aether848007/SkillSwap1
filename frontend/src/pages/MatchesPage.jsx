@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 import ProposalModal from '../components/ProposalModal'
@@ -56,6 +57,7 @@ function SkillSection({ label, skills, highlighted }) {
 
 function MatchCard({ match, onPropose }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const isMutual = match.theyTeachMe?.length > 0 && match.iTeachThem?.length > 0
 
   return (
@@ -76,33 +78,33 @@ function MatchCard({ match, onPropose }) {
             borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, padding: '3px 10px',
             whiteSpace: 'nowrap',
           }}>
-            ✓ Mutual match
+            {t('matches.mutual')}
           </span>
         )}
       </div>
 
       <SkillSection
-        label="Can teach you"
+        label={t('matches.canTeachYou')}
         skills={match.theirOfferedSkills}
         highlighted={match.theyTeachMe}
       />
       <SkillSection
-        label="Wants to learn"
+        label={t('matches.wantsToLearn')}
         skills={match.theirWantedSkills}
         highlighted={match.iTeachThem}
       />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
         <span style={{ fontSize: '0.78rem', color: 'var(--mute)' }}>
-          {match.averageRating > 0 ? `★ ${match.averageRating.toFixed(1)}` : 'New'}{' '}
-          · {match.totalSessions} session{match.totalSessions !== 1 ? 's' : ''}
+          {match.averageRating > 0 ? `★ ${match.averageRating.toFixed(1)}` : t('common.new')}{' '}
+          · {t('matches.sessionsCount', { count: match.totalSessions })}
         </span>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-sm btn-outline" onClick={() => navigate(`/user/${match.userId}`)}>
-            View profile
+            {t('common.viewProfile')}
           </button>
           <button className="btn btn-sm btn-primary" onClick={() => onPropose(match)}>
-            Propose exchange
+            {t('matches.proposeExchange')}
           </button>
         </div>
       </div>
@@ -112,6 +114,7 @@ function MatchCard({ match, onPropose }) {
 
 function IncomingProposalCard({ proposal, onAccept, onDecline, busy }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   // A received proposal: the sender offers `offeredSkill` (they teach you) and
   // wants `requestedSkill` (you teach them).
   const theyTeachYou = proposal.offeredSkill?.title
@@ -125,7 +128,7 @@ function IncomingProposalCard({ proposal, onAccept, onDecline, busy }) {
         <Avatar user={proposal.otherUser} size={48} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: '0.98rem', color: 'var(--text)' }}>
-            {proposal.otherUser?.displayName} wants to swap
+            {t('matches.wantsToSwap', { name: proposal.otherUser?.displayName })}
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--mute)', fontWeight: 500 }}>
             {new Date(proposal.createdAt).toLocaleString()}
@@ -145,7 +148,7 @@ function IncomingProposalCard({ proposal, onAccept, onDecline, busy }) {
       {theyTeachYou && (
         <div>
           <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
-            They can teach you
+            {t('matches.theyCanTeachYou')}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             <SkillChip label={theyTeachYou} variant="offer" />
@@ -156,7 +159,7 @@ function IncomingProposalCard({ proposal, onAccept, onDecline, busy }) {
       {youTeachThem && (
         <div>
           <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
-            You can teach them
+            {t('matches.youCanTeachThem')}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             <SkillChip label={youTeachThem} variant="want" />
@@ -166,14 +169,14 @@ function IncomingProposalCard({ proposal, onAccept, onDecline, busy }) {
 
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
         <button className="btn btn-sm btn-outline" onClick={() => navigate(`/user/${proposal.otherUser?.userId}`)} disabled={busy}>
-          View profile
+          {t('common.viewProfile')}
         </button>
         <div style={{ flex: 1 }} />
         <button className="btn btn-sm btn-ghost" onClick={() => onDecline(proposal.proposalId)} disabled={busy}>
-          Decline
+          {t('sessions.decline')}
         </button>
         <button className="btn btn-sm btn-primary" onClick={() => onAccept(proposal.proposalId)} disabled={busy}>
-          Accept
+          {t('sessions.accept')}
         </button>
       </div>
     </div>
@@ -183,6 +186,7 @@ function IncomingProposalCard({ proposal, onAccept, onDecline, busy }) {
 export default function MatchesPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [matches, setMatches] = useState([])
   const [incoming, setIncoming] = useState([])
   const [loading, setLoading] = useState(true)
@@ -204,7 +208,7 @@ export default function MatchesPage() {
     Promise.all([
       api.get('/matches').then(r => setMatches(r.data)).catch(e => {
         console.error('Failed to load matches:', e)
-        setError(e.response?.data?.error || 'Failed to load matches')
+        setError(e.response?.data?.error || t('matches.failLoad'))
       }),
       api.get('/proposals').then(r => {
         setIncoming((r.data || []).filter(p => p.direction === 'received' && p.status === 'PENDING'))
@@ -217,12 +221,12 @@ export default function MatchesPage() {
     try {
       const res = await api.patch(`/proposals/${id}/accept`)
       setIncoming(prev => prev.filter(p => p.proposalId !== id))
-      showToast('Accepted! Opening your exchange…')
+      showToast(t('matches.accepted'))
       if (res.data?.exchangeId) {
         setTimeout(() => navigate(`/exchange/${res.data.exchangeId}`), 700)
       }
     } catch (e) {
-      showToast(e.response?.data?.error || 'Failed to accept')
+      showToast(e.response?.data?.error || t('matches.failAccept'))
     } finally {
       setActionBusy(null)
     }
@@ -230,14 +234,14 @@ export default function MatchesPage() {
 
   const handleDecline = async (id) => {
     // Optional, friendly reason the proposer will see. Blank/cancel still declines.
-    const reason = window.prompt('Add an optional reason (the other person will see it), or leave blank:') || ''
+    const reason = window.prompt(t('matches.declinePrompt')) || ''
     setActionBusy(id)
     try {
       await api.patch(`/proposals/${id}/decline`, reason.trim() ? { reason: reason.trim() } : {})
       setIncoming(prev => prev.filter(p => p.proposalId !== id))
-      showToast('Declined.')
+      showToast(t('matches.declined'))
     } catch (e) {
-      showToast(e.response?.data?.error || 'Failed to decline')
+      showToast(e.response?.data?.error || t('matches.failDecline'))
     } finally {
       setActionBusy(null)
     }
@@ -255,21 +259,21 @@ export default function MatchesPage() {
     <div className="container" style={{ paddingTop: 24, paddingBottom: 48, maxWidth: 760 }}>
       <div className="page-header" style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <h1>Your matches</h1>
-          <p>People you can trade skills with — ranked by compatibility</p>
+          <h1>{t('matches.title')}</h1>
+          <p>{t('matches.subtitle')}</p>
         </div>
         <button
           type="button"
           className={`btn btn-sm ${cityOnly ? 'btn-primary' : 'btn-outline'}`}
           onClick={() => setCityOnly(v => !v)}
           disabled={!user?.city}
-          title={user?.city ? `Show matches in ${user.city} only` : 'Set your city in profile to filter by location'}
+          title={user?.city ? t('matches.cityTitle', { city: user.city }) : t('matches.cityHint')}
           style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginTop: 4 }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
           </svg>
-          {user?.city ? `${user.city} only` : 'My city'}
+          {user?.city ? t('matches.cityOnly', { city: user.city }) : t('search.myCity')}
         </button>
       </div>
 
@@ -277,7 +281,7 @@ export default function MatchesPage() {
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px' }}>
-              Incoming proposals
+              {t('matches.incoming')}
             </h2>
             <span style={{
               background: 'var(--primary-pale)', color: 'var(--positive-deep)', borderRadius: 9999,
@@ -306,9 +310,7 @@ export default function MatchesPage() {
           background: 'var(--primary-pale)', borderRadius: 'var(--radius-sm)',
           padding: '16px 20px', marginBottom: 24, color: 'var(--positive-deep)', fontSize: '0.9rem',
         }}>
-          <strong>Tip:</strong> Add skills you can teach <em>and</em> skills you want to learn in your{' '}
-          <a href="/profile" style={{ color: 'var(--positive-deep)', fontWeight: 600 }}>profile</a>{' '}
-          to see more matches.
+          <strong>{t('matches.tip')}</strong> {t('matches.tipText')}
         </div>
       )}
 
@@ -330,18 +332,18 @@ export default function MatchesPage() {
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          <h3>No matches yet</h3>
-          <p>Add skills you can teach and skills you want to learn — we'll find compatible people for you.</p>
+          <h3>{t('matches.emptyTitle')}</h3>
+          <p>{t('matches.emptyHint')}</p>
         </div>
       ) : (
         <>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-            <span style={{ fontWeight: 600, color: 'var(--text)' }}>{visibleMatches.length}</span> compatible match{visibleMatches.length !== 1 ? 'es' : ''} found
-            {cityOnly && <span style={{ color: 'var(--mute)' }}> in {user?.city}</span>}
+            {t('matches.countFound', { count: visibleMatches.length })}
+            {cityOnly && <span style={{ color: 'var(--mute)' }}>{t('matches.inCity', { city: user?.city })}</span>}
           </div>
           {visibleMatches.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--mute)', fontSize: '0.9rem' }}>
-              No matches in {user?.city} yet.
+              {t('matches.noneInCity', { city: user?.city })}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>

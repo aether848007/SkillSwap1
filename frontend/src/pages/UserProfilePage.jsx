@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import StarRating from '../components/StarRating'
 import ProposalModal from '../components/ProposalModal'
 
-const toLabel = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''
-
 export default function UserProfilePage() {
   const { id } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [profile, setProfile] = useState(null)
   const [reviews, setReviews] = useState([])
   const [tab, setTab] = useState('skills')
@@ -48,15 +48,15 @@ export default function UserProfilePage() {
       if (profile.isBlocked) {
         await api.delete(`/users/${id}/block`)
         setProfile(p => ({ ...p, isBlocked: false }))
-        setSuccess(`${profile.displayName} unblocked.`)
+        setSuccess(t('userProfile.unblocked', { name: profile.displayName }))
       } else {
         await api.post(`/users/${id}/block`)
         setProfile(p => ({ ...p, isBlocked: true }))
-        setSuccess(`${profile.displayName} blocked. They can no longer message you or appear in your matches.`)
+        setSuccess(t('userProfile.blocked', { name: profile.displayName }))
       }
       setTimeout(() => setSuccess(''), 5000)
     } catch (e) {
-      setMessageError('Could not update block status. Try again.')
+      setMessageError(t('userProfile.blockFail'))
     }
     setBlockBusy(false)
   }
@@ -68,15 +68,15 @@ export default function UserProfilePage() {
       await api.post('/messages', { receiverId: id, content: msgContent })
       setShowMessage(false)
       setMsgContent('')
-      setSuccess("Message sent! They'll receive a notification and can reply from the Messages tab.")
+      setSuccess(t('userProfile.messageSent'))
       setTimeout(() => setSuccess(''), 6000)
     } catch (e) {
-      setMessageError("Message couldn't be sent — check your connection and try again.")
+      setMessageError(t('userProfile.messageFail'))
     }
   }
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading...</div>
-  if (!profile) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>User not found</div>
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>{t('common.loading')}</div>
+  if (!profile) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>{t('userProfile.notFound')}</div>
 
   const offeredSkills = (profile.skills || []).filter(s => s.isOffered)
   const soughtSkills = (profile.skills || []).filter(s => !s.isOffered)
@@ -103,30 +103,31 @@ export default function UserProfilePage() {
             {(profile.totalSessions || 0) >= 5 && (profile.averageRating || 0) >= 4.0 && (
               <span
                 title="Verified: 5+ completed sessions with a rating of 4.0 or above"
+                title={t('userProfile.verifiedTitle')}
                 style={{ background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600, cursor: 'help' }}
               >
-                ✓ Verified
+                {t('userProfile.verified')}
               </span>
             )}
           </div>
           <div className="city">
-            {profile.city} • Member since {new Date(profile.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+            {t('userProfile.memberSince', { city: profile.city, date: new Date(profile.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) })}
           </div>
           <div style={{ marginTop: 8, fontSize: '0.92rem', color: 'var(--text-secondary)' }}>{profile.bio}</div>
           <div className="profile-stats">
             <div className="stat">
               <div className="stat-value">{profile.totalSessions || 0}</div>
-              <div className="stat-label">Sessions</div>
+              <div className="stat-label">{t('userProfile.sessions')}</div>
             </div>
             <div className="stat">
               <div className="stat-value">
-                {profile.averageRating ? `★ ${profile.averageRating.toFixed(1)}` : 'New'}
+                {profile.averageRating ? `★ ${profile.averageRating.toFixed(1)}` : t('common.new')}
               </div>
-              <div className="stat-label">Rating</div>
+              <div className="stat-label">{t('userProfile.rating')}</div>
             </div>
             <div className="stat">
               <div className="stat-value">{offeredSkills.length}</div>
-              <div className="stat-label">Skills</div>
+              <div className="stat-label">{t('userProfile.skills')}</div>
             </div>
           </div>
         </div>
@@ -134,21 +135,21 @@ export default function UserProfilePage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {profile.isBlocked ? (
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: 180, textAlign: 'center' }}>
-                You blocked this user.
+                {t('userProfile.youBlocked')}
               </div>
             ) : (
               <>
                 <button className="btn btn-primary" onClick={() => setShowPropose(true)}>
-                  Propose Exchange
+                  {t('userProfile.proposeExchange')}
                 </button>
                 <button className="btn btn-outline" onClick={() => setShowMessage(true)}>
-                  Message
+                  {t('userProfile.message')}
                 </button>
               </>
             )}
             <button className="btn btn-ghost" onClick={toggleBlock} disabled={blockBusy}
               style={{ color: profile.isBlocked ? 'var(--primary)' : '#a7000d', fontSize: '0.85rem' }}>
-              {blockBusy ? '…' : profile.isBlocked ? 'Unblock' : 'Block user'}
+              {blockBusy ? '…' : profile.isBlocked ? t('common.unblock') : t('common.block')}
             </button>
           </div>
         )}
@@ -156,13 +157,13 @@ export default function UserProfilePage() {
 
       <div className="tabs">
         <div className={`tab ${tab === 'skills' ? 'active' : ''}`} onClick={() => setTab('skills')}>
-          Skills Offered ({offeredSkills.length})
+          {t('userProfile.skillsOffered', { count: offeredSkills.length })}
         </div>
         <div className={`tab ${tab === 'seeking' ? 'active' : ''}`} onClick={() => setTab('seeking')}>
-          Looking For ({soughtSkills.length})
+          {t('userProfile.lookingFor', { count: soughtSkills.length })}
         </div>
         <div className={`tab ${tab === 'reviews' ? 'active' : ''}`} onClick={() => setTab('reviews')}>
-          Reviews ({reviews.length})
+          {t('userProfile.reviews', { count: reviews.length })}
         </div>
       </div>
 
@@ -172,8 +173,8 @@ export default function UserProfilePage() {
             <div key={skill.skillId} className="card fade-in">
               <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: 4 }}>{skill.title}</div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <span className="badge badge-category">{toLabel(skill.category)}</span>
-                <span className="badge badge-level">{toLabel(skill.proficiencyLevel)}</span>
+                <span className="badge badge-category">{t(`categories.${skill.category}`)}</span>
+                <span className="badge badge-level">{t(`levels.${skill.proficiencyLevel}`)}</span>
               </div>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>{skill.description}</div>
             </div>
@@ -187,25 +188,25 @@ export default function UserProfilePage() {
             <div key={skill.skillId} className="card fade-in">
               <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: 4 }}>{skill.title}</div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <span className="badge badge-category">{toLabel(skill.category)}</span>
-                <span className="badge badge-level">{toLabel(skill.proficiencyLevel)}</span>
+                <span className="badge badge-category">{t(`categories.${skill.category}`)}</span>
+                <span className="badge badge-level">{t(`levels.${skill.proficiencyLevel}`)}</span>
               </div>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>{skill.description}</div>
             </div>
           ))}
-          {soughtSkills.length === 0 && <div style={{ color: 'var(--text-secondary)' }}>No learning goals listed yet</div>}
+          {soughtSkills.length === 0 && <div style={{ color: 'var(--text-secondary)' }}>{t('userProfile.noGoals')}</div>}
         </div>
       )}
 
       {tab === 'reviews' && (
         <div>
           {reviews.length === 0 ? (
-            <div style={{ color: 'var(--text-secondary)', padding: 20 }}>No reviews yet</div>
+            <div style={{ color: 'var(--text-secondary)', padding: 20 }}>{t('userProfile.noReviews')}</div>
           ) : (
             reviews.map(review => (
               <div key={review.ratingId} className="card fade-in" style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600 }}>{review.rater?.displayName || 'User'}</div>
+                  <div style={{ fontWeight: 600 }}>{review.rater?.displayName || t('admin.colUser')}</div>
                   <StarRating score={review.score} />
                 </div>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>{review.comment}</div>
@@ -231,20 +232,20 @@ export default function UserProfilePage() {
       {showMessage && (
         <div className="modal-overlay" onClick={() => { setShowMessage(false); setMessageError('') }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Message {profile.displayName}</h2>
+            <h2>{t('userProfile.messageTitle', { name: profile.displayName })}</h2>
             <form onSubmit={sendMessage}>
               <div className="form-group">
-                <label className="form-label">Your message</label>
+                <label className="form-label">{t('userProfile.yourMessage')}</label>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
-                  Just introduce yourself — a sentence or two is plenty. They'll reply from the Messages tab.
+                  {t('userProfile.messageHint')}
                 </p>
                 <textarea className="form-textarea" value={msgContent} onChange={e => setMsgContent(e.target.value)}
-                  placeholder={`Hi ${profile.displayName}! I saw you offer…`} rows={4} required />
+                  placeholder={t('userProfile.messagePlaceholder', { name: profile.displayName })} rows={4} required />
               </div>
               {messageError && <div className="error-msg">{messageError}</div>}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-ghost" onClick={() => { setShowMessage(false); setMessageError('') }}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Send</button>
+                <button type="button" className="btn btn-ghost" onClick={() => { setShowMessage(false); setMessageError('') }}>{t('common.cancel')}</button>
+                <button type="submit" className="btn btn-primary">{t('common.send')}</button>
               </div>
             </form>
           </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
@@ -20,15 +21,16 @@ function Avatar({ user, size = 36 }) {
 }
 
 const STAT_META = [
-  { key: 'totalUsers',     label: 'Members',   color: 'var(--primary)' },
-  { key: 'totalSkills',    label: 'Skills',     color: '#8b5cf6' },
-  { key: 'totalSessions',  label: 'Sessions',   color: '#0ea5e9' },
-  { key: 'totalExchanges', label: 'Exchanges',  color: '#f59e0b' },
-  { key: 'totalProposals', label: 'Proposals',  color: '#10b981' },
-  { key: 'totalMessages',  label: 'Messages',   color: '#6366f1' },
+  { key: 'totalUsers',     labelKey: 'members',      color: 'var(--primary)' },
+  { key: 'totalSkills',    labelKey: 'skills',       color: '#8b5cf6' },
+  { key: 'totalSessions',  labelKey: 'sessionsStat', color: '#0ea5e9' },
+  { key: 'totalExchanges', labelKey: 'exchanges',    color: '#f59e0b' },
+  { key: 'totalProposals', labelKey: 'proposals',    color: '#10b981' },
+  { key: 'totalMessages',  labelKey: 'messages',     color: '#6366f1' },
 ]
 
 export default function AdminPage() {
+  const { t } = useTranslation()
   const { user, updateUser } = useAuth()
   const navigate = useNavigate()
   const [stats, setStats]     = useState(null)
@@ -106,19 +108,19 @@ export default function AdminPage() {
     )
   }, [users, search])
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--mute)' }}>Loading…</div>
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--mute)' }}>{t('common.loading')}</div>
 
   return (
     <div className="container" style={{ paddingTop: 24, paddingBottom: 48, maxWidth: 1100 }}>
       <div className="page-header" style={{ marginBottom: 28 }}>
-        <h1>Admin panel</h1>
-        <p>Platform management — {users.length} members</p>
+        <h1>{t('admin.panelTitle')}</h1>
+        <p>{t('admin.membersCount', { count: users.length })}</p>
       </div>
 
       {/* Stats grid */}
       {stats && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginBottom: 36 }}>
-          {STAT_META.map(({ key, label, color }) => (
+          {STAT_META.map(({ key, labelKey, color }) => (
             <div key={key} style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               borderRadius: 'var(--radius-sm)', padding: '18px 16px', textAlign: 'center',
@@ -127,7 +129,7 @@ export default function AdminPage() {
                 {stats[key] ?? 0}
               </div>
               <div style={{ fontSize: '0.78rem', color: 'var(--mute)', marginTop: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                {label}
+                {t(`admin.${labelKey}`)}
               </div>
             </div>
           ))}
@@ -138,7 +140,7 @@ export default function AdminPage() {
       <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
         {/* Table header */}
         <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)', flex: 1 }}>Members</span>
+          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)', flex: 1 }}>{t('admin.members')}</span>
           <div style={{ position: 'relative' }}>
             <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--mute)', pointerEvents: 'none' }}
               width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -147,7 +149,7 @@ export default function AdminPage() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search name, email, city…"
+              placeholder={t('admin.searchUsers')}
               style={{
                 paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7,
                 border: '1px solid var(--border)', borderRadius: 'var(--radius)',
@@ -162,13 +164,13 @@ export default function AdminPage() {
           <table style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse', fontSize: '0.84rem' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
-                {['User', 'Email', 'City', 'Role', 'Status', 'Joined', 'Actions'].map(h => (
-                  <th key={h} style={{
+                {['admin.colUser', 'login.email', 'admin.colCity', 'admin.colRole', 'admin.colStatus', 'admin.colJoined', 'admin.colActions'].map(k => (
+                  <th key={k} style={{
                     padding: '10px 14px', textAlign: 'left', fontWeight: 600,
                     color: 'var(--mute)', borderBottom: '1px solid var(--border)',
                     whiteSpace: 'nowrap', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em',
                   }}>
-                    {h}
+                    {t(k)}
                   </th>
                 ))}
               </tr>
@@ -184,7 +186,7 @@ export default function AdminPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Avatar user={u} size={34} />
                         <span style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{u.displayName}</span>
-                        {isSelf && <span style={{ fontSize: '0.7rem', color: 'var(--positive-deep)', fontWeight: 700 }}>you</span>}
+                        {isSelf && <span style={{ fontSize: '0.7rem', color: 'var(--positive-deep)', fontWeight: 700 }}>{t('admin.you')}</span>}
                       </div>
                     </td>
 
@@ -208,7 +210,7 @@ export default function AdminPage() {
                         color: u.role === 'ADMIN' ? '#b45309' : 'var(--body)',
                         border: u.role === 'ADMIN' ? '1px solid #fcd34d' : '1px solid var(--border)',
                       }}>
-                        {u.role === 'ADMIN' ? 'Admin' : 'Member'}
+                        {u.role === 'ADMIN' ? t('admin.roleAdmin') : t('admin.roleMember')}
                       </span>
                     </td>
 
@@ -217,16 +219,16 @@ export default function AdminPage() {
                       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                         {u.emailVerified ? (
                           <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 600, background: 'var(--primary-pale)', color: 'var(--positive-deep)', border: '1px solid rgba(16,185,129,0.3)' }}>
-                            Verified
+                            {t('admin.verified')}
                           </span>
                         ) : (
                           <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 600, background: '#fef9c3', color: '#a16207', border: '1px solid #fde047' }}>
-                            Unverified
+                            {t('admin.unverified')}
                           </span>
                         )}
                         {u.disabled && (
                           <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 600, background: '#fef2f2', color: '#b91c1c', border: '1px solid #fca5a5' }}>
-                            Banned
+                            {t('admin.banned')}
                           </span>
                         )}
                       </div>
@@ -246,7 +248,7 @@ export default function AdminPage() {
                           className="btn btn-sm btn-outline"
                           style={{ padding: '3px 10px', fontSize: '0.75rem' }}
                         >
-                          View
+                          {t('admin.view')}
                         </button>
 
                         {/* Login as */}
@@ -260,7 +262,7 @@ export default function AdminPage() {
                               border: '1px solid var(--border)', fontFamily: 'inherit', fontWeight: 600,
                             }}
                           >
-                            {isLoading('imp') ? '…' : 'Login as'}
+                            {isLoading('imp') ? '…' : t('admin.loginAs')}
                           </button>
                         )}
 
@@ -275,7 +277,7 @@ export default function AdminPage() {
                               border: '1px solid #fde047', fontFamily: 'inherit', fontWeight: 600,
                             }}
                           >
-                            {isLoading('verify') ? '…' : 'Verify'}
+                            {isLoading('verify') ? '…' : t('admin.verify')}
                           </button>
                         )}
 
@@ -290,7 +292,7 @@ export default function AdminPage() {
                               border: '1px solid #fcd34d', fontFamily: 'inherit', fontWeight: 600,
                             }}
                           >
-                            {isLoading('role') ? '…' : 'Promote'}
+                            {isLoading('role') ? '…' : t('admin.promote')}
                           </button>
                         )}
                         {!isSelf && u.role === 'ADMIN' && (
@@ -303,7 +305,7 @@ export default function AdminPage() {
                               border: '1px solid var(--border)', fontFamily: 'inherit', fontWeight: 600,
                             }}
                           >
-                            {isLoading('role') ? '…' : 'Demote'}
+                            {isLoading('role') ? '…' : t('admin.demote')}
                           </button>
                         )}
 
@@ -318,7 +320,7 @@ export default function AdminPage() {
                               border: '1px solid rgba(239,68,68,0.35)', fontFamily: 'inherit', fontWeight: 600,
                             }}
                           >
-                            {isLoading('ban') ? '…' : 'Ban'}
+                            {isLoading('ban') ? '…' : t('admin.ban')}
                           </button>
                         )}
                         {!isSelf && u.disabled && (
@@ -331,7 +333,7 @@ export default function AdminPage() {
                               border: '1px solid rgba(16,185,129,0.35)', fontFamily: 'inherit', fontWeight: 600,
                             }}
                           >
-                            {isLoading('unban') ? '…' : 'Unban'}
+                            {isLoading('unban') ? '…' : t('admin.unban')}
                           </button>
                         )}
 
@@ -346,7 +348,7 @@ export default function AdminPage() {
                               border: '1px solid #fca5a5', fontFamily: 'inherit', fontWeight: 600,
                             }}
                           >
-                            {isLoading('del') ? '…' : 'Delete'}
+                            {isLoading('del') ? '…' : t('admin.delete')}
                           </button>
                         )}
                       </div>
@@ -357,7 +359,7 @@ export default function AdminPage() {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={7} style={{ padding: '32px 14px', textAlign: 'center', color: 'var(--mute)', fontSize: '0.88rem' }}>
-                    No users match your search.
+                    {t('admin.noMatch')}
                   </td>
                 </tr>
               )}

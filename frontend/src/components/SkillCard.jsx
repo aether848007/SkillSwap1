@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import StarRating from './StarRating'
-
-const toLabel = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''
 
 export default function SkillCard({ skill }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   return (
     <div className="card card-skill fade-in" onClick={() => navigate(`/user/${skill.providerUserId}`)}>
@@ -20,14 +20,14 @@ export default function SkillCard({ skill }) {
         </div>
         <div className="rating" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <StarRating score={skill.providerRating || 0} size={13} />
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{skill.providerRating?.toFixed(1) || 'New'}</span>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{skill.providerRating?.toFixed(1) || t('common.new')}</span>
         </div>
       </div>
       <div className="skill-title">{skill.title}</div>
       <div className="skill-desc">{skill.description}</div>
       <div className="card-footer">
-        <span className="badge badge-category">{toLabel(skill.category)}</span>
-        <span className="badge badge-level">{toLabel(skill.proficiencyLevel)}</span>
+        <span className="badge badge-category">{t(`categories.${skill.category}`)}</span>
+        <span className="badge badge-level">{t(`levels.${skill.proficiencyLevel}`)}</span>
       </div>
     </div>
   )

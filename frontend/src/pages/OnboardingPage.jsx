@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 import { detectCategory } from '../utils/detectCategory'
 
 const CATEGORIES = ['PROGRAMMING', 'DESIGN', 'LANGUAGE', 'MUSIC', 'BUSINESS', 'COOKING', 'PHOTOGRAPHY', 'FITNESS', 'OTHER']
 const LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
-const toLabel = s => s.charAt(0) + s.slice(1).toLowerCase()
 
 const EMPTY_SKILL = { title: '', category: 'PROGRAMMING', proficiencyLevel: 'BEGINNER' }
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { updateUser } = useAuth()
   const [step, setStep] = useState(1)
   const [offeredSkills, setOfferedSkills] = useState([{ ...EMPTY_SKILL }])
@@ -71,16 +72,16 @@ export default function OnboardingPage() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <input
               className="form-input"
-              placeholder="Skill name, e.g. Python, Guitar, Spanish..."
+              placeholder={t('onboarding.skillPlaceholder')}
               value={skill.title}
               onChange={e => updateSkill(list, setList, idx, 'title', e.target.value)}
             />
             <div style={{ display: 'flex', gap: 8 }}>
               <select className="form-input" value={skill.category} onChange={e => updateSkill(list, setList, idx, 'category', e.target.value)} style={{ flex: 1 }}>
-                {CATEGORIES.map(c => <option key={c} value={c}>{toLabel(c)}</option>)}
+                {CATEGORIES.map(c => <option key={c} value={c}>{t(`categories.${c}`)}</option>)}
               </select>
               <select className="form-input" value={skill.proficiencyLevel} onChange={e => updateSkill(list, setList, idx, 'proficiencyLevel', e.target.value)} style={{ flex: 1 }}>
-                {LEVELS.map(l => <option key={l} value={l}>{toLabel(l)}</option>)}
+                {LEVELS.map(l => <option key={l} value={l}>{t(`levels.${l}`)}</option>)}
               </select>
             </div>
           </div>
@@ -95,7 +96,7 @@ export default function OnboardingPage() {
       {list.length < 3 && (
         <button type="button" onClick={() => addSkill(list, setList)}
           style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--radius-sm)', padding: '10px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.85rem', fontFamily: 'inherit' }}>
-          + Add another
+          {t('onboarding.addAnother')}
         </button>
       )}
     </div>
@@ -113,19 +114,19 @@ export default function OnboardingPage() {
 
         {step === 1 && (
           <>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, marginBottom: 6 }}>What can you teach?</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, marginBottom: 6 }}>{t('onboarding.teachTitle')}</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: 20 }}>
-              Add up to 3 skills you're comfortable teaching others.
+              {t('onboarding.teachSubtitle')}
             </p>
             <SkillForm list={offeredSkills} setList={setOfferedSkills} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28, alignItems: 'center' }}>
-              <button className="btn btn-ghost btn-sm" onClick={skip}>Skip for now</button>
+              <button className="btn btn-ghost btn-sm" onClick={skip}>{t('onboarding.skipForNow')}</button>
               <button
                 className="btn btn-primary"
                 onClick={() => setStep(2)}
                 disabled={offeredSkills.every(s => !s.title.trim())}
               >
-                Next
+                {t('onboarding.next')}
               </button>
             </div>
           </>
@@ -133,19 +134,19 @@ export default function OnboardingPage() {
 
         {step === 2 && (
           <>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, marginBottom: 6 }}>What do you want to learn?</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, marginBottom: 6 }}>{t('onboarding.learnTitle')}</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: 20 }}>
-              Add up to 3 skills you'd love someone to teach you.
+              {t('onboarding.learnSubtitle')}
             </p>
             <SkillForm list={wantedSkills} setList={setWantedSkills} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28, alignItems: 'center' }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => setStep(1)}>Back</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setStep(1)}>{t('common.back')}</button>
               <button
                 className="btn btn-primary"
                 onClick={saveAndFinish}
                 disabled={saving || wantedSkills.every(s => !s.title.trim())}
               >
-                {saving ? 'Saving…' : 'See my matches'}
+                {saving ? t('onboarding.saving') : t('onboarding.seeMatches')}
               </button>
             </div>
           </>

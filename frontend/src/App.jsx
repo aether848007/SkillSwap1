@@ -14,6 +14,7 @@ import UserProfilePage from './pages/UserProfilePage'
 import AdminPage from './pages/AdminPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
 import OnboardingPage from './pages/OnboardingPage'
+import MeetingPage from './pages/MeetingPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/exchanges" element={<ProtectedRoute><ExchangesPage /></ProtectedRoute>} />
           <Route path="/exchange/:id" element={<ProtectedRoute><ExchangePage /></ProtectedRoute>} />
           <Route path="/sessions" element={<ProtectedRoute><SessionsPage /></ProtectedRoute>} />
+          <Route path="/meeting/:sessionId" element={<ProtectedRoute><MeetingPage /></ProtectedRoute>} />
           <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/user/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />

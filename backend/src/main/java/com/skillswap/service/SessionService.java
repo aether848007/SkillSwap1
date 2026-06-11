@@ -6,6 +6,7 @@ import com.skillswap.model.enums.NotificationType;
 import com.skillswap.model.enums.SessionStatus;
 import com.skillswap.repository.SessionRepository;
 import com.skillswap.repository.SkillProfileRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,8 +28,46 @@ public class SessionService {
     private final SkillProfileRepository profileRepo;
     private final NotificationService notifService;
 
+    /** Jitsi Meet domain that hosts the video rooms. Override to self-host. */
+    @Value("${app.jitsi.domain:meet.jit.si}")
+    private String jitsiDomain;
+
     public SessionService(SessionRepository se, SkillProfileRepository pr, NotificationService n) {
         this.sessionRepo = se; this.profileRepo = pr; this.notifService = n;
+    }
+
+    /** Video-meeting coordinates for a session: the Jitsi room and the host domain. */
+    public record MeetingInfo(String roomName, String domain) {}
+
+    /**
+     * Returns the video-meeting room for a CONFIRMED (or already IN_PROGRESS) session. Only the
+     * two participants may join. The first participant to join flips the session to IN_PROGRESS
+     * and notifies the other that the meeting has started. The room name is derived from the
+     * session id, so it is stable for both sides and needs no stored field.
+     */
+    @Transactional
+    public MeetingInfo getMeeting(UUID callerId, UUID sessionId) {
+        Session s = sessionRepo.findByIdWithFetch(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found"));
+        UUID providerId = s.getProvider().getUserId();
+        UUID learnerId = s.getLearner().getUserId();
+        if (!callerId.equals(providerId) && !callerId.equals(learnerId)) {
+            throw new SecurityException("Not a participant in this session");
+        }
+        SessionStatus st = s.getStatus();
+        if (st != SessionStatus.CONFIRMED && st != SessionStatus.IN_PROGRESS) {
+            throw new IllegalStateException("The meeting opens once the session is confirmed");
+        }
+        if (st == SessionStatus.CONFIRMED) {
+            s.setStatus(SessionStatus.IN_PROGRESS);
+            sessionRepo.save(s);
+            UUID otherId = callerId.equals(providerId) ? learnerId : providerId;
+            String starter = callerId.equals(providerId)
+                    ? s.getProvider().getDisplayName() : s.getLearner().getDisplayName();
+            notifService.create(otherId, NotificationType.SESSION_MEETING_STARTED,
+                    starter + " started the video meeting for \"" + s.getSkill().getTitle() + "\". Join now!");
+        }
+        return new MeetingInfo("skillswap-" + sessionId, jitsiDomain);
     }
 
     @Transactional(readOnly = true)

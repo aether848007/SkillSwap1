@@ -1,14 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import api from '../api/axios'
 import StarRating from '../components/StarRating'
 import Toast from '../components/Toast'
 
-const STATUS_LABEL = {
-  DRAFT: 'Not scheduled', REQUESTED: 'Time proposed', CONFIRMED: 'Confirmed',
-  IN_PROGRESS: 'In progress', COMPLETED: 'Completed — rate it', RATED: 'Done',
-  DECLINED: 'Time declined', CANCELLED: 'Cancelled',
-}
 const STATUS_BADGE = {
   DRAFT: 'badge-completed', REQUESTED: 'badge-requested', CONFIRMED: 'badge-confirmed',
   IN_PROGRESS: 'badge-in_progress', COMPLETED: 'badge-confirmed', RATED: 'badge-rated',
@@ -20,6 +16,7 @@ function fmt(iso) {
 }
 
 function RatingForm({ sessionId, onRated, onToast }) {
+  const { t } = useTranslation()
   const [score, setScore] = useState(5)
   const [comment, setComment] = useState('')
   const [busy, setBusy] = useState(false)
@@ -28,35 +25,37 @@ function RatingForm({ sessionId, onRated, onToast }) {
     setBusy(true)
     try {
       await api.post(`/sessions/${sessionId}/rating`, { score, comment: comment.trim() || null })
-      onToast('Thanks for your rating!')
+      onToast(t('exchange.thanksRating'))
       onRated()
     } catch (e) {
-      onToast(e.response?.data?.error || 'Failed to submit rating')
+      onToast(e.response?.data?.error || t('exchange.submitRating'))
       setBusy(false)
     }
   }
 
   return (
     <div style={{ background: 'var(--canvas-soft)', borderRadius: 'var(--radius)', padding: 14, marginTop: 10 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>Rate this session</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>{t('exchange.rateThis')}</div>
       <StarRating score={score} interactive onChange={setScore} size={24} />
       <textarea
         className="form-textarea"
         rows={2}
         maxLength={500}
-        placeholder="Optional comment…"
+        placeholder={t('exchange.optionalComment')}
         value={comment}
         onChange={e => setComment(e.target.value)}
         style={{ marginTop: 8 }}
       />
       <button className="btn btn-primary btn-sm" onClick={submit} disabled={busy} style={{ marginTop: 8 }}>
-        {busy ? 'Submitting…' : 'Submit rating'}
+        {busy ? t('exchange.submitting') : t('exchange.submitRating')}
       </button>
     </div>
   )
 }
 
 function SessionCard({ session, onChanged, onToast }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
   const isLearner = session.viewerRole === 'learner'
   const [when, setWhen] = useState('')
   const [busy, setBusy] = useState(false)
@@ -65,8 +64,8 @@ function SessionCard({ session, onChanged, onToast }) {
   const status = session.status
   const partner = isLearner ? session.provider : session.learner
   const roleLine = isLearner
-    ? `You learn "${session.skill?.title}" from ${partner?.displayName}`
-    : `You teach "${session.skill?.title}" to ${partner?.displayName}`
+    ? t('exchange.youLearnFrom', { skill: session.skill?.title, name: partner?.displayName })
+    : t('exchange.youTeachTo', { skill: session.skill?.title, name: partner?.displayName })
 
   const act = async (fn, okMsg) => {
     setBusy(true)
@@ -75,8 +74,8 @@ function SessionCard({ session, onChanged, onToast }) {
   }
 
   const schedule = () => {
-    if (!when) { onToast('Pick a date and time first'); return }
-    act(() => api.patch(`/sessions/${session.sessionId}/schedule`, { scheduledAt: when }), 'Time proposed')
+    if (!when) { onToast(t('exchange.pickDateTime')); return }
+    act(() => api.patch(`/sessions/${session.sessionId}/schedule`, { scheduledAt: when }), t('exchange.statusLabel.REQUESTED'))
   }
   const setStatus = (s, msg) =>
     act(() => api.patch(`/sessions/${session.sessionId}/status`, null, { params: { status: s } }), msg)
@@ -88,12 +87,12 @@ function SessionCard({ session, onChanged, onToast }) {
           <div style={{ fontWeight: 700, color: 'var(--ink)', fontSize: 15 }}>{session.skill?.title}</div>
           <div style={{ fontSize: 13, color: 'var(--body)', marginTop: 2 }}>{roleLine}</div>
         </div>
-        <span className={`badge ${STATUS_BADGE[status] || 'badge-completed'}`}>{STATUS_LABEL[status] || status}</span>
+        <span className={`badge ${STATUS_BADGE[status] || 'badge-completed'}`}>{t(`exchange.statusLabel.${status}`, status)}</span>
       </div>
 
       {session.scheduledAt && (
         <div style={{ fontSize: 13, color: 'var(--ink)', marginTop: 10, fontWeight: 600 }}>
-          🗓 {fmt(session.scheduledAt)} · {session.durationMinutes} min
+          🗓 {fmt(session.scheduledAt)} · {session.durationMinutes} {t('exchange.minutes')}
         </div>
       )}
 
@@ -108,7 +107,7 @@ function SessionCard({ session, onChanged, onToast }) {
             style={{ flex: 1, minWidth: 200 }}
           />
           <button className="btn btn-sm btn-primary" onClick={schedule} disabled={busy}>
-            {status === 'CONFIRMED' ? 'Reschedule' : 'Propose time'}
+            {status === 'CONFIRMED' ? t('sessions.reschedule') : t('exchange.proposeTime')}
           </button>
         </div>
       )}
@@ -116,11 +115,11 @@ function SessionCard({ session, onChanged, onToast }) {
       {/* Provider: respond to a proposed time */}
       {!isLearner && status === 'REQUESTED' && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <button className="btn btn-sm btn-primary" onClick={() => setStatus('CONFIRMED', 'Session confirmed')} disabled={busy}>
-            Confirm time
+          <button className="btn btn-sm btn-primary" onClick={() => setStatus('CONFIRMED', t('exchange.statusLabel.CONFIRMED'))} disabled={busy}>
+            {t('exchange.confirmTime')}
           </button>
-          <button className="btn btn-sm btn-outline" onClick={() => setStatus('DECLINED', 'Time declined')} disabled={busy}>
-            Decline time
+          <button className="btn btn-sm btn-outline" onClick={() => setStatus('DECLINED', t('exchange.statusLabel.DECLINED'))} disabled={busy}>
+            {t('exchange.declineTime')}
           </button>
         </div>
       )}
@@ -128,23 +127,26 @@ function SessionCard({ session, onChanged, onToast }) {
       {/* Provider waiting */}
       {!isLearner && status === 'DRAFT' && (
         <div style={{ fontSize: 13, color: 'var(--mute)', marginTop: 12 }}>
-          Waiting for {partner?.displayName} to propose a time.
+          {t('exchange.waitingPropose', { name: partner?.displayName })}
         </div>
       )}
       {isLearner && status === 'REQUESTED' && (
         <div style={{ fontSize: 13, color: 'var(--mute)', marginTop: 12 }}>
-          Waiting for {partner?.displayName} to confirm.
+          {t('exchange.waitingConfirm', { name: partner?.displayName })}
         </div>
       )}
 
-      {/* Confirmed: either side can complete or cancel */}
-      {status === 'CONFIRMED' && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <button className="btn btn-sm btn-primary" onClick={() => setStatus('COMPLETED', 'Marked complete')} disabled={busy}>
-            Mark complete
+      {/* Confirmed / in progress: join the video meeting, complete, or cancel */}
+      {(status === 'CONFIRMED' || status === 'IN_PROGRESS') && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+          <button className="btn btn-sm btn-primary" onClick={() => navigate(`/meeting/${session.sessionId}`)} disabled={busy}>
+            🎥 {t('sessions.joinMeeting')}
           </button>
-          <button className="btn btn-sm btn-ghost" onClick={() => setStatus('CANCELLED', 'Session cancelled')} disabled={busy}>
-            Cancel
+          <button className="btn btn-sm btn-outline" onClick={() => setStatus('COMPLETED', t('sessions.markComplete'))} disabled={busy}>
+            {t('sessions.markComplete')}
+          </button>
+          <button className="btn btn-sm btn-ghost" onClick={() => setStatus('CANCELLED', t('exchange.statusLabel.CANCELLED'))} disabled={busy}>
+            {t('exchange.cancel')}
           </button>
         </div>
       )}
@@ -154,13 +156,13 @@ function SessionCard({ session, onChanged, onToast }) {
         rating
           ? <RatingForm sessionId={session.sessionId} onRated={onChanged} onToast={onToast} />
           : <button className="btn btn-sm btn-primary" onClick={() => setRating(true)} style={{ marginTop: 12 }}>
-              Rate this session
+              {t('exchange.rateSession')}
             </button>
       )}
 
       {status === 'RATED' && session.viewerHasRated && (
         <div style={{ fontSize: 13, color: 'var(--positive-deep)', marginTop: 12, fontWeight: 600 }}>
-          ✓ Session complete and rated
+          {t('exchange.completeAndRated')}
         </div>
       )}
     </div>
@@ -170,6 +172,7 @@ function SessionCard({ session, onChanged, onToast }) {
 export default function ExchangePage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [exchange, setExchange] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -180,28 +183,28 @@ export default function ExchangePage() {
   const load = useCallback(() => {
     api.get(`/exchanges/${id}`)
       .then(r => setExchange(r.data))
-      .catch(e => setError(e.response?.data?.error || 'Could not load this exchange'))
+      .catch(e => setError(e.response?.data?.error || t('exchange.loadFail')))
       .finally(() => setLoading(false))
   }, [id])
 
   useEffect(() => { load() }, [load])
 
   const abandon = async () => {
-    if (!window.confirm('Close this exchange? This cannot be undone.')) return
+    if (!window.confirm(t('exchange.abandonConfirm'))) return
     try {
       await api.patch(`/exchanges/${id}/abandon`)
-      showToast('Exchange closed')
+      showToast(t('exchange.closed'))
       setTimeout(() => navigate('/exchanges'), 800)
     } catch (e) {
-      showToast(e.response?.data?.error || 'Failed to close')
+      showToast(e.response?.data?.error || t('exchange.abandon'))
     }
   }
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--mute)' }}>Loading exchange…</div>
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--mute)' }}>{t('exchange.loading')}</div>
   if (error) return (
     <div className="container" style={{ paddingTop: 32, maxWidth: 640 }}>
       <div className="error-msg">{error}</div>
-      <button className="btn btn-outline" onClick={() => navigate('/exchanges')}>Back to exchanges</button>
+      <button className="btn btn-outline" onClick={() => navigate('/exchanges')}>{t('exchange.backToExchanges')}</button>
     </div>
   )
 
@@ -211,11 +214,11 @@ export default function ExchangePage() {
   return (
     <div className="container" style={{ paddingTop: 32, paddingBottom: 48, maxWidth: 720 }}>
       <div className="page-header" style={{ marginBottom: 20 }}>
-        <h1>Skill exchange</h1>
+        <h1>{t('exchange.title')}</h1>
         <p>
-          With {exchange.partner?.displayName} ·{' '}
+          {t('exchange.withStatus', { name: exchange.partner?.displayName })} ·{' '}
           <span style={{ fontWeight: 700, color: done ? 'var(--positive-deep)' : abandoned ? 'var(--negative)' : 'var(--ink)' }}>
-            {exchange.status}
+            {done ? t('exchanges.statusCompleted') : abandoned ? t('exchanges.statusAbandoned') : t('exchanges.statusActive')}
           </span>
         </p>
       </div>
@@ -226,12 +229,12 @@ export default function ExchangePage() {
         fontSize: 14, fontWeight: 600, color: 'var(--positive-deep)',
         alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap',
       }}>
-        <span>You teach {exchange.iTeach?.title}</span>
+        <span>{t('exchange.youTeach', { skill: exchange.iTeach?.title })}</span>
         <span style={{ fontSize: 18 }}>⇄</span>
-        <span>You learn {exchange.theyTeach?.title}</span>
+        <span>{t('exchange.youLearn', { skill: exchange.theyTeach?.title })}</span>
       </div>
 
-      <h2 className="section-title">Sessions</h2>
+      <h2 className="section-title">{t('exchange.sessions')}</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {(exchange.sessions || []).map(s => (
           <SessionCard key={s.sessionId} session={s} onChanged={load} onToast={showToast} />
@@ -240,11 +243,11 @@ export default function ExchangePage() {
 
       <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
         <button className="btn btn-outline" onClick={() => navigate(`/messages`)}>
-          Message {exchange.partner?.displayName}
+          {t('exchange.messagePartner', { name: exchange.partner?.displayName })}
         </button>
         {exchange.status === 'ACTIVE' && (
           <button className="btn btn-ghost" onClick={abandon} style={{ color: 'var(--negative)' }}>
-            Abandon exchange
+            {t('exchange.abandon')}
           </button>
         )}
       </div>

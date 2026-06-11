@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -18,6 +19,7 @@ const STATUS_COLORS = {
 export default function SessionsPage() {
   const { user } = useAuth()
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [sessions, setSessions]     = useState([])
   const [filter, setFilter]         = useState('all')
   const [loading, setLoading]       = useState(true)
@@ -39,7 +41,7 @@ export default function SessionsPage() {
 
   useWebSocket({
     onNotification: (notification) => {
-      const sessionTypes = ['SESSION_REQUEST', 'SESSION_ACCEPTED', 'SESSION_DECLINED', 'SESSION_COMPLETED']
+      const sessionTypes = ['SESSION_REQUEST', 'SESSION_ACCEPTED', 'SESSION_DECLINED', 'SESSION_COMPLETED', 'SESSION_MEETING_STARTED']
       if (sessionTypes.includes(notification.type)) fetchSessions()
     },
   })
@@ -155,9 +157,12 @@ export default function SessionsPage() {
                 </div>
               )}
 
-              {session.status === 'CONFIRMED' && (
+              {(session.status === 'CONFIRMED' || session.status === 'IN_PROGRESS') && (
                 <div className="session-actions">
-                  {session.learner?.userId === user?.userId && (
+                  <button className="btn btn-primary btn-sm" onClick={() => navigate(`/meeting/${session.sessionId}`)}>
+                    🎥 {t('sessions.joinMeeting')}
+                  </button>
+                  {session.status === 'CONFIRMED' && session.learner?.userId === user?.userId && (
                     <button className="btn btn-outline btn-sm" onClick={() => reschedule(session)}>{t('sessions.reschedule')}</button>
                   )}
                   <button className="btn btn-accent btn-sm" onClick={() => updateStatus(session.sessionId, 'COMPLETED')}>

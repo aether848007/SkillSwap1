@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -7,6 +8,7 @@ import { useWebSocket } from '../hooks/useWebSocket'
 export default function MessagesPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [conversations, setConversations] = useState([])
   const [activeConv, setActiveConv]       = useState(null)
   const [messages, setMessages]           = useState([])
@@ -106,7 +108,7 @@ export default function MessagesPage() {
     if (msg.sender?.userId !== user?.userId) return null
     const read = !!msg.readAt
     return (
-      <span style={{ marginLeft: 4, fontSize: '0.65rem', opacity: 0.8 }} title={read ? 'Read' : 'Sent'}>
+      <span style={{ marginLeft: 4, fontSize: '0.65rem', opacity: 0.8 }} title={read ? t('messages.read') : t('messages.sent')}>
         {read
           ? <svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 5 4 8 9 2"/><polyline points="5 5 8 8 13 2"/></svg>
           : <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 5 4 8 9 2"/></svg>
@@ -115,12 +117,12 @@ export default function MessagesPage() {
     )
   }
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading messages...</div>
+  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>{t('messages.loading')}</div>
 
   return (
     <div className="container" style={{ paddingTop: 24 }}>
       <div className="page-header">
-        <h1>Messages</h1>
+        <h1>{t('messages.title')}</h1>
       </div>
 
       {conversations.length === 0 ? (
@@ -128,8 +130,8 @@ export default function MessagesPage() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
           </svg>
-          <h3>No messages yet</h3>
-          <p>Start a conversation by messaging someone from their profile</p>
+          <h3>{t('messages.emptyTitle')}</h3>
+          <p>{t('messages.emptyHint')}</p>
         </div>
       ) : (
         <div className="messages-layout">
@@ -144,7 +146,7 @@ export default function MessagesPage() {
                   className="avatar"
                   onClick={e => { e.stopPropagation(); navigate(`/user/${conv.otherUser?.userId}`) }}
                   style={{ cursor: 'pointer' }}
-                  title={`View ${conv.otherUser?.displayName}'s profile`}
+                  title={t('messages.viewProfileOf', { name: conv.otherUser?.displayName })}
                 >{conv.otherUser?.displayName?.[0]?.toUpperCase()}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{conv.otherUser?.displayName}</div>
@@ -164,7 +166,7 @@ export default function MessagesPage() {
                   <div
                     onClick={() => navigate(`/user/${activeConv.otherUser?.userId}`)}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-                    title={`View ${activeConv.otherUser?.displayName}'s profile`}
+                    title={t('messages.viewProfileOf', { name: activeConv.otherUser?.displayName })}
                   >
                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', color: 'var(--on-primary)', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {activeConv.otherUser?.displayName?.[0]?.toUpperCase()}
@@ -195,14 +197,14 @@ export default function MessagesPage() {
                     className="form-input"
                     value={newMsg}
                     onChange={e => setNewMsg(e.target.value)}
-                    placeholder="Type a message..."
+                    placeholder={t('messages.typePlaceholder')}
                   />
-                  <button type="submit" className="btn btn-primary">Send</button>
+                  <button type="submit" className="btn btn-primary">{t('common.send')}</button>
                 </form>
               </>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>
-                Select a conversation
+                {t('messages.selectConversation')}
               </div>
             )}
           </div>

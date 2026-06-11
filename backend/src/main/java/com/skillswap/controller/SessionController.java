@@ -39,6 +39,22 @@ public class SessionController {
         }
     }
 
+    /** Video-meeting room for a confirmed session. Participants only. */
+    @GetMapping("/{id}/meeting")
+    public ResponseEntity<?> meeting(Authentication auth, @PathVariable UUID id) {
+        UUID callerId = (UUID) auth.getPrincipal();
+        try {
+            SessionService.MeetingInfo info = sessionService.getMeeting(callerId, id);
+            return ResponseEntity.ok(Map.of("roomName", info.roomName(), "domain", info.domain()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     /** Transition a session: confirm / decline / start / complete / cancel. */
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> updateStatus(Authentication auth, @PathVariable UUID id, @RequestParam String status,

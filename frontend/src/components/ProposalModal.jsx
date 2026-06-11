@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import api from '../api/axios'
 import Toast from './Toast'
 
@@ -15,6 +16,7 @@ import Toast from './Toast'
  */
 export default function ProposalModal({ targetUserId, targetUserName, suggestedTeachTitle, suggestedLearnTitle, onClose }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [myOffered, setMyOffered] = useState([])
   const [theirOffered, setTheirOffered] = useState([])
   const [offeredSkillId, setOfferedSkillId] = useState('')
@@ -46,7 +48,7 @@ export default function ProposalModal({ targetUserId, targetUserName, suggestedT
     e.preventDefault()
     setError('')
     if (!offeredSkillId || !requestedSkillId) {
-      setError('Pick one skill to teach and one to learn.')
+      setError(t('proposal.pickBoth'))
       return
     }
     setSubmitting(true)
@@ -57,10 +59,10 @@ export default function ProposalModal({ targetUserId, targetUserName, suggestedT
         requestedSkillId,
         message: message.trim() || null,
       })
-      setToast('Proposal sent!')
+      setToast(t('proposal.sent'))
       setTimeout(onClose, 1100)
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send proposal')
+      setError(err.response?.data?.error || t('proposal.sendFail'))
       setSubmitting(false)
     }
   }
@@ -69,33 +71,33 @@ export default function ProposalModal({ targetUserId, targetUserName, suggestedT
     <>
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal" onClick={e => e.stopPropagation()}>
-          <h2>Propose an exchange with {targetUserName}</h2>
+          <h2>{t('proposal.title', { name: targetUserName })}</h2>
 
           {loading ? (
-            <p style={{ color: 'var(--mute)' }}>Loading skills…</p>
+            <p style={{ color: 'var(--mute)' }}>{t('proposal.loadingSkills')}</p>
           ) : myOffered.length === 0 ? (
             <div>
               <p style={{ color: 'var(--body)', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
-                You need at least one skill you can teach before proposing an exchange.
+                {t('proposal.needSkill')}
               </p>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <button className="btn btn-ghost" onClick={onClose}>Close</button>
-                <button className="btn btn-primary" onClick={() => navigate('/profile')}>Add a skill</button>
+                <button className="btn btn-ghost" onClick={onClose}>{t('common.close')}</button>
+                <button className="btn btn-primary" onClick={() => navigate('/profile')}>{t('proposal.addSkill')}</button>
               </div>
             </div>
           ) : theirOffered.length === 0 ? (
             <div>
               <p style={{ color: 'var(--body)', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
-                {targetUserName} has no skills listed to teach yet — nothing to swap for right now.
+                {t('proposal.theyHaveNone', { name: targetUserName })}
               </p>
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button className="btn btn-primary" onClick={onClose}>Close</button>
+                <button className="btn btn-primary" onClick={onClose}>{t('common.close')}</button>
               </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label className="form-label">You will teach</label>
+                <label className="form-label">{t('proposal.youWillTeach')}</label>
                 <select className="form-select" value={offeredSkillId}
                   onChange={e => setOfferedSkillId(e.target.value)}>
                   {myOffered.map(s => (
@@ -109,7 +111,7 @@ export default function ProposalModal({ targetUserId, targetUserName, suggestedT
               </div>
 
               <div className="form-group">
-                <label className="form-label">You will learn</label>
+                <label className="form-label">{t('proposal.youWillLearn')}</label>
                 <select className="form-select" value={requestedSkillId}
                   onChange={e => setRequestedSkillId(e.target.value)}>
                   {theirOffered.map(s => (
@@ -119,12 +121,12 @@ export default function ProposalModal({ targetUserId, targetUserName, suggestedT
               </div>
 
               <div className="form-group">
-                <label className="form-label">Message (optional)</label>
+                <label className="form-label">{t('proposal.messageOptional')}</label>
                 <textarea
                   className="form-textarea"
                   rows={3}
                   maxLength={500}
-                  placeholder={`Hi ${targetUserName?.split(' ')[0] || ''}, I'd love to swap skills with you!`}
+                  placeholder={t('proposal.messagePlaceholder', { name: targetUserName?.split(' ')[0] || '' })}
                   value={message}
                   onChange={e => setMessage(e.target.value)}
                 />
@@ -136,9 +138,9 @@ export default function ProposalModal({ targetUserId, targetUserName, suggestedT
               {error && <div className="error-msg">{error}</div>}
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-                <button type="button" className="btn btn-ghost" onClick={onClose} disabled={submitting}>Cancel</button>
+                <button type="button" className="btn btn-ghost" onClick={onClose} disabled={submitting}>{t('common.cancel')}</button>
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'Sending…' : 'Send proposal'}
+                  {submitting ? t('proposal.sending') : t('proposal.sendProposal')}
                 </button>
               </div>
             </form>
