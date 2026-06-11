@@ -34,3 +34,10 @@ uploads/
 
 # Tunnel binary
 ngrok.exe
+
+# Local AI tooling
+.claude/
+.agents/
+.impeccable/
+wise/
+skills-lock.json
