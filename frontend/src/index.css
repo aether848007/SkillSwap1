@@ -103,6 +103,24 @@ body {
   letter-spacing: -0.3px;
 }
 .navbar-brand svg { width: 32px; height: 32px; }
+
+/* Notifications dropdown: anchored to the bell on desktop; on small screens the bell sits
+   near the left edge, so pin the panel to the viewport instead to keep it fully visible. */
+.notif-dropdown {
+  position: absolute;
+  right: 0;
+  top: 110%;
+  width: min(320px, calc(100vw - 24px));
+}
+@media (max-width: 800px) {
+  .notif-dropdown {
+    position: fixed;
+    top: 70px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}
 .navbar-links { display: flex; gap: 4px; }
 .navbar-links a {
   padding: 8px 14px;

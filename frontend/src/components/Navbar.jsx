@@ -118,7 +118,7 @@ export default function Navbar() {
               )}
             </button>
             {showNotifs && (
-              <div style={{ position: 'absolute', right: 0, top: '110%', width: 'min(320px, calc(100vw - 24px))', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', boxShadow: '0 8px 32px rgba(14,15,12,0.12)', zIndex: 200, overflow: 'hidden' }}>
+              <div className="notif-dropdown" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', boxShadow: '0 8px 32px rgba(14,15,12,0.12)', zIndex: 200, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
                   <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{t('nav.notifications')}</span>
                   {unread > 0 && <button onClick={markAllRead} style={{ fontSize: 12, color: 'var(--positive-deep)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>{t('nav.markAllRead')}</button>}

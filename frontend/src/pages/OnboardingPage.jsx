@@ -10,62 +10,32 @@ const LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
 
 const EMPTY_SKILL = { title: '', category: 'PROGRAMMING', proficiencyLevel: 'BEGINNER' }
 
-export default function OnboardingPage() {
-  const navigate = useNavigate()
-  const { t } = useTranslation()
-  const { updateUser } = useAuth()
-  const [step, setStep] = useState(1)
-  const [offeredSkills, setOfferedSkills] = useState([{ ...EMPTY_SKILL }])
-  const [wantedSkills, setWantedSkills]   = useState([{ ...EMPTY_SKILL }])
-  const [saving, setSaving] = useState(false)
-
-  const skip = () => {
-    localStorage.setItem('onboardingSkipped', '1')
-    updateUser({ needsOnboarding: false })
-    navigate('/')
-  }
-
-  const updateSkill = (list, setList, idx, field, value) => {
-    setList(list.map((s, i) => {
-      if (i !== idx) return s
-      const next = { ...s, [field]: value }
-      // Auto-detect category from the title unless the user has manually chosen one.
-      if (field === 'title' && !s.categoryTouched) {
-        const detected = detectCategory(value)
-        if (detected) next.category = detected
-      }
-      if (field === 'category') next.categoryTouched = true
-      return next
-    }))
-  }
-
-  const addSkill = (list, setList) => {
-    if (list.length < 3) setList([...list, { ...EMPTY_SKILL }])
-  }
-
-  const removeSkill = (list, setList, idx) => {
-    if (list.length > 1) setList(list.filter((_, i) => i !== idx))
-  }
-
-  const saveAndFinish = async () => {
-    setSaving(true)
-    try {
-      const valid = (skills, isOffered) => skills.filter(s => s.title.trim()).map(s => ({
-        title: s.title.trim(), category: s.category, proficiencyLevel: s.proficiencyLevel,
-        isOffered, description: '',
-      }))
-      const toSave = [...valid(offeredSkills, true), ...valid(wantedSkills, false)]
-      await Promise.all(toSave.map(s => api.post('/users/skills', s)))
-      const meRes = await api.get('/users/me')
-      updateUser({ ...meRes.data, needsOnboarding: false })
-      localStorage.setItem('onboardingSkipped', '1')
-      navigate('/matches')
-    } catch {
-      setSaving(false)
+const updateSkill = (list, setList, idx, field, value) => {
+  setList(list.map((s, i) => {
+    if (i !== idx) return s
+    const next = { ...s, [field]: value }
+    // Auto-detect category from the title unless the user has manually chosen one.
+    if (field === 'title' && !s.categoryTouched) {
+      const detected = detectCategory(value)
+      if (detected) next.category = detected
     }
-  }
+    if (field === 'category') next.categoryTouched = true
+    return next
+  }))
+}
 
-  const SkillForm = ({ list, setList }) => (
+const addSkill = (list, setList) => {
+  if (list.length < 3) setList([...list, { ...EMPTY_SKILL }])
+}
+
+const removeSkill = (list, setList, idx) => {
+  if (list.length > 1) setList(list.filter((_, i) => i !== idx))
+}
+
+// Module-level component: defining this inside OnboardingPage would give it a new identity on
+// every keystroke, remounting the inputs and closing the mobile keyboard after each character.
+function SkillForm({ list, setList, t }) {
+  return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {list.map((skill, idx) => (
         <div key={idx} style={{ background: 'var(--bg)', borderRadius: 'var(--radius-sm)', padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -101,6 +71,40 @@ export default function OnboardingPage() {
       )}
     </div>
   )
+}
+
+export default function OnboardingPage() {
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const { updateUser } = useAuth()
+  const [step, setStep] = useState(1)
+  const [offeredSkills, setOfferedSkills] = useState([{ ...EMPTY_SKILL }])
+  const [wantedSkills, setWantedSkills]   = useState([{ ...EMPTY_SKILL }])
+  const [saving, setSaving] = useState(false)
+
+  const skip = () => {
+    localStorage.setItem('onboardingSkipped', '1')
+    updateUser({ needsOnboarding: false })
+    navigate('/')
+  }
+
+  const saveAndFinish = async () => {
+    setSaving(true)
+    try {
+      const valid = (skills, isOffered) => skills.filter(s => s.title.trim()).map(s => ({
+        title: s.title.trim(), category: s.category, proficiencyLevel: s.proficiencyLevel,
+        isOffered, description: '',
+      }))
+      const toSave = [...valid(offeredSkills, true), ...valid(wantedSkills, false)]
+      await Promise.all(toSave.map(s => api.post('/users/skills', s)))
+      const meRes = await api.get('/users/me')
+      updateUser({ ...meRes.data, needsOnboarding: false })
+      localStorage.setItem('onboardingSkipped', '1')
+      navigate('/matches')
+    } catch {
+      setSaving(false)
+    }
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
@@ -118,7 +122,7 @@ export default function OnboardingPage() {
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: 20 }}>
               {t('onboarding.teachSubtitle')}
             </p>
-            <SkillForm list={offeredSkills} setList={setOfferedSkills} />
+            <SkillForm list={offeredSkills} setList={setOfferedSkills} t={t} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28, alignItems: 'center' }}>
               <button className="btn btn-ghost btn-sm" onClick={skip}>{t('onboarding.skipForNow')}</button>
               <button
@@ -138,7 +142,7 @@ export default function OnboardingPage() {
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: 20 }}>
               {t('onboarding.learnSubtitle')}
             </p>
-            <SkillForm list={wantedSkills} setList={setWantedSkills} />
+            <SkillForm list={wantedSkills} setList={setWantedSkills} t={t} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28, alignItems: 'center' }}>
               <button className="btn btn-ghost btn-sm" onClick={() => setStep(1)}>{t('common.back')}</button>
               <button

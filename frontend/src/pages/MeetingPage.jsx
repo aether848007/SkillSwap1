@@ -32,6 +32,7 @@ export default function MeetingPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const [error, setError] = useState('')
+  const [connecting, setConnecting] = useState(true)
   const containerRef = useRef(null)
   const apiRef = useRef(null)
 
@@ -87,6 +88,7 @@ export default function MeetingPage() {
         configOverwrite: { prejoinPageEnabled: true },
       })
       apiRef.current = jitsi
+      setConnecting(false)
       jitsi.addEventListener('readyToClose', () => navigate(-1))
     }
 
@@ -110,10 +112,11 @@ export default function MeetingPage() {
   return (
     <div style={{ position: 'relative', width: '100%', height: 'calc(100vh - 64px)', background: '#040404' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-      {!apiRef.current && (
+      {connecting && (
         <div style={{
+          // pointerEvents none so the overlay can never swallow taps meant for the Jitsi iframe.
           position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', color: '#fff', fontSize: 15,
+          justifyContent: 'center', color: '#fff', fontSize: 15, pointerEvents: 'none',
         }}>
           {t('meeting.loading')}
         </div>
